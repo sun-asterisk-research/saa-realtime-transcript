@@ -1,4 +1,4 @@
-# SAA 2025 Live Transcript
+# SAA 2025 Live Transcript for CEO Talk
 
 Real-time speech-to-text transcription and translation system for **Sun Asterisk Annual 2025 CEO Talk**. This application provides live transcription with automatic translation, designed to display on large screens during the event.
 
