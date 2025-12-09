@@ -202,9 +202,6 @@ export default function LiveTranscript() {
   const transcriptionTokens = allTokens.filter((token) => token.translation_status !== 'translation');
   const translationTokens = allTokens.filter((token) => token.translation_status === 'translation');
 
-  // Track which tokens are currently being streamed (non-final)
-  const nonFinalTextSet = new Set(nonFinalTokens.map((t) => `${t.text}-${t.translation_status}`));
-
   return (
     <main className="flex flex-col min-h-screen">
       {/* Header */}
