@@ -7,6 +7,20 @@
   --foreground: #171717;
 
   --primary: 0 84% 50%;
+
+  /* Responsive subtitle font sizes */
+  --text-subtitle: clamp(2rem, 5vw, 6rem);
+  --text-subtitle-streaming: clamp(2.6rem, 6.5vw, 7.8rem);
+  --text-placeholder: clamp(1.5rem, 4vw, 5rem);
+}
+
+/* Portrait mode - larger text for vertical LED displays */
+@media (orientation: portrait) {
+  :root {
+    --text-subtitle: clamp(2rem, 8vw, 8rem);
+    --text-subtitle-streaming: clamp(2.6rem, 10.4vw, 10.4rem);
+    --text-placeholder: clamp(1.5rem, 6vw, 6rem);
+  }
 }
 
 body {

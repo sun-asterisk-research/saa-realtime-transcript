@@ -342,7 +342,7 @@ export default function LiveTranscript() {
         {/* Right panel - 70% */}
         <div
           ref={transcriptRef}
-          className={`w-[70%] p-6 overflow-y-auto bg-white ${isFullscreen ? 'fixed inset-0 w-full z-50' : ''}`}>
+          className={`w-[70%] p-6 overflow-y-auto bg-black ${isFullscreen ? 'fixed inset-0 w-full z-50' : ''}`}>
           {/* Fullscreen button */}
           <button
             onClick={toggleFullscreen}
@@ -382,17 +382,18 @@ export default function LiveTranscript() {
           {/* Transcript content */}
           <div className={`${isFullscreen ? 'pt-16 px-8' : ''}`}>
             {!isFullscreen && (
-              <h2 className="text-xl font-semibold text-gray-700 mb-4">
+              <h2 className="text-xl font-semibold text-white mb-4">
                 Target Language ({targetLanguageLabel})
               </h2>
             )}
             {translationTokens.length === 0 ? (
               <div
-                className={`flex items-center justify-center text-gray-400 ${isFullscreen ? 'h-full text-5xl' : 'h-64 text-3xl'}`}>
+                className="flex items-center justify-center text-white/50 h-64"
+                style={{ fontSize: 'var(--text-placeholder)' }}>
                 {isActiveState(state) ? 'Listening...' : 'Click "Start" to begin transcription'}
               </div>
             ) : (
-              <p className={`leading-relaxed ${isFullscreen ? 'text-6xl leading-normal' : 'text-3xl'}`}>
+              <p className="leading-relaxed" style={{ fontSize: 'var(--text-subtitle)' }}>
                 {translationTokens.map((token, idx) => {
                   const isStreaming = !token.is_final;
                   return (
@@ -400,9 +401,10 @@ export default function LiveTranscript() {
                       key={idx}
                       className={`${
                         isStreaming
-                          ? 'text-primary font-extrabold text-[1.3em] drop-shadow-sm'
-                          : 'text-gray-800'
-                      } transition-all duration-300`}>
+                          ? 'text-primary font-extrabold drop-shadow-sm'
+                          : 'text-white'
+                      } transition-all duration-300`}
+                      style={isStreaming ? { fontSize: 'var(--text-subtitle-streaming)' } : undefined}>
                       {token.text}
                     </span>
                   );
