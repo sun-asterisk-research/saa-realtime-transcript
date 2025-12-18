@@ -72,6 +72,7 @@ export default function LiveTranscript() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const sourceRef = useRef<HTMLDivElement>(null);
+  const translationScrollRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
@@ -194,6 +195,9 @@ export default function LiveTranscript() {
     }
     if (sourceRef.current) {
       sourceRef.current.scrollTop = sourceRef.current.scrollHeight;
+    }
+    if (translationScrollRef.current) {
+      translationScrollRef.current.scrollTop = translationScrollRef.current.scrollHeight;
     }
   }, [finalTokens, nonFinalTokens]);
 
@@ -342,7 +346,8 @@ export default function LiveTranscript() {
         {/* Right panel - 70% */}
         <div
           ref={transcriptRef}
-          className={`w-[70%] p-6 overflow-y-auto bg-black ${isFullscreen ? 'fixed inset-0 w-full z-50' : ''}`}>
+          className={`w-[70%] p-6 overflow-y-auto ${isFullscreen ? 'fixed inset-0 w-full z-50' : ''}`}
+          style={{ backgroundColor: '#092432' }}>
           {/* Fullscreen button */}
           <button
             onClick={toggleFullscreen}
@@ -380,7 +385,7 @@ export default function LiveTranscript() {
           </button>
 
           {/* Transcript content */}
-          <div className={`${isFullscreen ? 'pt-16 px-8' : ''}`}>
+          <div className={`flex flex-col items-center justify-center h-full ${isFullscreen ? 'pt-16 px-8' : ''}`}>
             {!isFullscreen && (
               <h2 className="text-xl font-semibold text-white mb-4">
                 Target Language ({targetLanguageLabel})
@@ -388,12 +393,15 @@ export default function LiveTranscript() {
             )}
             {translationTokens.length === 0 ? (
               <div
-                className="flex items-center justify-center text-white/50 h-64"
+                className="flex items-center justify-center text-white/50"
                 style={{ fontSize: 'var(--text-placeholder)' }}>
                 {isActiveState(state) ? 'Listening...' : 'Click "Start" to begin transcription'}
               </div>
             ) : (
-              <p className="leading-relaxed" style={{ fontSize: 'var(--text-subtitle)' }}>
+              <div
+                ref={translationScrollRef}
+                className="leading-relaxed overflow-y-auto w-full text-center"
+                style={{ fontSize: 'var(--text-subtitle)', maxHeight: '2.8lh' }}>
                 {translationTokens.map((token, idx) => {
                   const isStreaming = !token.is_final;
                   return (
@@ -409,7 +417,7 @@ export default function LiveTranscript() {
                     </span>
                   );
                 })}
-              </p>
+              </div>
             )}
           </div>
         </div>
