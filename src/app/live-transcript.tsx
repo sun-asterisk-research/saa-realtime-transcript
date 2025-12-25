@@ -401,7 +401,7 @@ export default function LiveTranscript() {
               <div
                 ref={translationScrollRef}
                 className="leading-relaxed overflow-y-auto w-full text-center"
-                style={{ fontSize: 'var(--text-subtitle)', maxHeight: '2.8lh' }}>
+                style={{ fontSize: 'var(--text-subtitle)', maxHeight: '4.8lh' }}>
                 {translationTokens.map((token, idx) => {
                   const isStreaming = !token.is_final;
                   return (
@@ -409,10 +409,9 @@ export default function LiveTranscript() {
                       key={idx}
                       className={`${
                         isStreaming
-                          ? 'text-primary font-extrabold drop-shadow-sm'
+                          ? 'text-primary'
                           : 'text-white'
-                      } transition-all duration-300`}
-                      style={isStreaming ? { fontSize: 'var(--text-subtitle-streaming)' } : undefined}>
+                      }`}>
                       {token.text}
                     </span>
                   );
