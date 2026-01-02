@@ -43,20 +43,21 @@ jobs:
       - name: Verify context sets
         run: |
           echo "🔍 Verifying public context sets..."
-          supabase db execute --sql "
-            SELECT
-              cs.name,
-              COUNT(DISTINCT t.id) as terms,
-              COUNT(DISTINCT g.id) as metadata,
-              COUNT(DISTINCT tt.id) as translations
-            FROM context_sets cs
-            LEFT JOIN context_set_terms t ON cs.id = t.context_set_id
-            LEFT JOIN context_set_general g ON cs.id = g.context_set_id
-            LEFT JOIN context_set_translation_terms tt ON cs.id = tt.context_set_id
-            WHERE cs.is_public = true
-            GROUP BY cs.id, cs.name
-            ORDER BY cs.created_at;
-          "
+          cat > /tmp/verify.sql <<'EOF'
+          SELECT
+            cs.name,
+            COUNT(DISTINCT t.id) as terms,
+            COUNT(DISTINCT g.id) as metadata,
+            COUNT(DISTINCT tt.id) as translations
+          FROM context_sets cs
+          LEFT JOIN context_set_terms t ON cs.id = t.context_set_id
+          LEFT JOIN context_set_general g ON cs.id = g.context_set_id
+          LEFT JOIN context_set_translation_terms tt ON cs.id = tt.context_set_id
+          WHERE cs.is_public = true
+          GROUP BY cs.id, cs.name
+          ORDER BY cs.created_at;
+          EOF
+          supabase db execute --file /tmp/verify.sql
 
       - name: Deployment summary
         if: always()
