@@ -140,7 +140,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // Fetch updated merged context
     const updatedResponse = await GET(
       new NextRequest(`${request.url.split('/contexts')[0]}/contexts`),
-      { params: { code } },
+      { params: Promise.resolve({ code }) },
     );
     const updatedData = await updatedResponse.json();
 

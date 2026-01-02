@@ -104,6 +104,14 @@ export interface ContextSetFormData {
   translation_terms: Array<{ source: string; target: string }>;
 }
 
+// Soniox Context type (matches SDK structure)
+export interface Context {
+  terms?: string[];
+  general?: Array<{ key: string; value: string }>;
+  text?: string;
+  translation_terms?: Array<{ source: string; target: string }>;
+}
+
 export interface Database {
   public: {
     Tables: {

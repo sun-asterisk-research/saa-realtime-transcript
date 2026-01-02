@@ -9,6 +9,8 @@ import { useSession } from '@/lib/hooks/useSession';
 import { useParticipants } from '@/lib/hooks/useParticipants';
 import { useTranscripts } from '@/lib/hooks/useTranscripts';
 import { useSessionTranscribe } from '@/lib/hooks/useSessionTranscribe';
+import { useSessionContexts } from '@/lib/hooks/useSessionContexts';
+import { ContextManagementPanel } from '@/components/context/ContextManagementPanel';
 import type { TranslationConfig } from '@soniox/speech-to-text-web';
 
 interface ParticipantInfo {
@@ -71,6 +73,13 @@ export default function SessionContent({ code }: SessionContentProps) {
   const { session, isLoading: sessionLoading, error: sessionError, endSession } = useSession(code);
   const { participants, leaveSession } = useParticipants(session?.id, code);
   const { transcripts, streamingTranscripts, broadcastStreaming } = useTranscripts(session?.id, code);
+  const {
+    contextSets,
+    mergedContext,
+    isLoading: contextsLoading,
+    addContextSets,
+    removeContextSet,
+  } = useSessionContexts(session?.id, code);
 
   // Get translation config based on session settings
   const translationConfig: TranslationConfig | undefined = session
@@ -124,6 +133,7 @@ export default function SessionContent({ code }: SessionContentProps) {
     participantId: participantInfo?.participantId || '',
     participantName: participantInfo?.participantName || '',
     translationConfig,
+    context: mergedContext,
     onBroadcast: handleBroadcast,
     onFinalTranscript: handleFinalTranscript,
   });
@@ -232,6 +242,31 @@ export default function SessionContent({ code }: SessionContentProps) {
     [code, participantInfo],
   );
 
+  // Handle context change - restart transcription if needed
+  const handleContextChange = useCallback(async () => {
+    const wasRecording = isRecording;
+
+    if (wasRecording) {
+      // Stop transcription
+      stop();
+      setIsRecording(false);
+
+      // Show confirmation to restart
+      const shouldRestart = window.confirm(
+        '⚠️ Context has been updated. Transcription needs to restart with the new context.\n\nRestart transcription now?',
+      );
+
+      if (shouldRestart) {
+        // Small delay to ensure stop is complete
+        setTimeout(() => {
+          start();
+          setIsRecording(true);
+        }, 500);
+      }
+    }
+    // If not recording, just update the context (will be used on next start)
+  }, [isRecording, start, stop]);
+
   if (sessionLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-900">
@@ -314,6 +349,19 @@ export default function SessionContent({ code }: SessionContentProps) {
             ))}
           </Select>
         </div>
+
+        {/* Context Management */}
+        <ContextManagementPanel
+          sessionCode={code}
+          sessionId={session.id}
+          contextSets={contextSets}
+          mergedContext={mergedContext}
+          isLoading={contextsLoading}
+          disabled={isRecording}
+          onContextChange={handleContextChange}
+          onAddContextSets={addContextSets}
+          onRemoveContextSet={removeContextSet}
+        />
 
         {/* Recording Status */}
         <div className="mb-6">

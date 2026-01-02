@@ -1,5 +1,4 @@
-import type { Context } from '@soniox/speech-to-text-web';
-import type { ContextSetWithDetails } from '@/lib/supabase/types';
+import type { Context, ContextSetWithDetails } from '@/lib/supabase/types';
 
 /**
  * Merges multiple context sets into a single Soniox Context object.
@@ -140,12 +139,12 @@ export function estimateTokenCount(contextSets: ContextSetWithDetails[]): number
 
   // Terms: each term ≈ its character length
   if (merged.terms) {
-    totalChars += merged.terms.reduce((sum, term) => sum + term.length, 0);
+    totalChars += merged.terms.reduce((sum: number, term: string) => sum + term.length, 0);
   }
 
   // General: key + value pairs
   if (merged.general) {
-    totalChars += merged.general.reduce((sum, g) => sum + g.key.length + g.value.length, 0);
+    totalChars += merged.general.reduce((sum: number, g: { key: string; value: string }) => sum + g.key.length + g.value.length, 0);
   }
 
   // Text: full text length
@@ -155,7 +154,7 @@ export function estimateTokenCount(contextSets: ContextSetWithDetails[]): number
 
   // Translation terms: source + target pairs
   if (merged.translation_terms) {
-    totalChars += merged.translation_terms.reduce((sum, tt) => sum + tt.source.length + tt.target.length, 0);
+    totalChars += merged.translation_terms.reduce((sum: number, tt: { source: string; target: string }) => sum + tt.source.length + tt.target.length, 0);
   }
 
   // Rough approximation: 4 chars ≈ 1 token

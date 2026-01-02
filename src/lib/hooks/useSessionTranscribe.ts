@@ -1,7 +1,7 @@
 import { useCallback, useRef, useEffect } from 'react';
 import useTranscribe from '@/lib/useTranscribe';
 import { getAPIKey } from '@/lib/utils';
-import type { TranslationConfig, Token } from '@soniox/speech-to-text-web';
+import type { TranslationConfig, Token, Context } from '@soniox/speech-to-text-web';
 
 interface PendingTranscript {
   originalText: string;
@@ -14,6 +14,7 @@ interface UseSessionTranscribeParams {
   participantId: string;
   participantName: string;
   translationConfig?: TranslationConfig;
+  context?: Context;
   onBroadcast?: (data: {
     participantId: string;
     participantName: string;
@@ -36,6 +37,7 @@ export function useSessionTranscribe({
   participantId,
   participantName,
   translationConfig,
+  context,
   onBroadcast,
   onFinalTranscript,
 }: UseSessionTranscribeParams) {
@@ -46,6 +48,7 @@ export function useSessionTranscribe({
   const { startTranscription, stopTranscription, state, finalTokens, nonFinalTokens, error } = useTranscribe({
     apiKey: getAPIKey,
     translationConfig,
+    context,
   });
 
   // Handle non-final tokens - broadcast for streaming display
