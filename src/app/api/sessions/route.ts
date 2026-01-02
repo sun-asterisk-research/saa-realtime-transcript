@@ -10,12 +10,13 @@ interface CreateSessionRequest {
   languageA?: string;
   languageB?: string;
   preferredLanguage?: string; // Host's display language for two-way mode
+  contextSetIds?: string[]; // Optional context sets to attach to session
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body: CreateSessionRequest = await request.json();
-    const { hostName, mode, targetLanguage, languageA, languageB, preferredLanguage } = body;
+    const { hostName, mode, targetLanguage, languageA, languageB, preferredLanguage, contextSetIds } = body;
 
     if (!hostName || !mode) {
       return NextResponse.json({ error: 'hostName and mode are required' }, { status: 400 });
@@ -71,6 +72,25 @@ export async function POST(request: NextRequest) {
     }
 
     const participant = participantData as Participant;
+
+    // Add context sets to session if provided
+    if (contextSetIds && contextSetIds.length > 0) {
+      const sessionContextSetsData = contextSetIds.map((contextSetId, idx) => ({
+        session_id: session.id,
+        context_set_id: contextSetId,
+        sort_order: idx,
+      }));
+
+      const { error: contextError } = await supabase
+        .from('session_context_sets')
+        .insert(sessionContextSetsData);
+
+      if (contextError) {
+        console.error('Error adding context sets to session:', contextError);
+        // Don't fail the request, just log the error
+        // Context sets can be added later via the session contexts API
+      }
+    }
 
     return NextResponse.json({
       session,
