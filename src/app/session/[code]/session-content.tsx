@@ -15,6 +15,42 @@ interface ParticipantInfo {
   participantId: string;
   participantName: string;
   isHost: boolean;
+  preferredLanguage?: string;
+}
+
+// Helper function to get display text based on user's language preference
+function getDisplayText(
+  transcript: {
+    original_text: string;
+    translated_text?: string | null;
+    source_language?: string | null;
+    target_language?: string | null;
+  },
+  preferredLanguage: string | undefined,
+  sessionMode: string
+): string {
+  // For one-way mode, always show translated if available
+  if (sessionMode === 'one_way') {
+    return transcript.translated_text || transcript.original_text;
+  }
+
+  // For two-way mode, show based on user's preference
+  if (!preferredLanguage) {
+    return transcript.translated_text || transcript.original_text;
+  }
+
+  // If source matches preference, show original
+  if (transcript.source_language === preferredLanguage) {
+    return transcript.original_text;
+  }
+
+  // If target matches preference, show translated
+  if (transcript.target_language === preferredLanguage) {
+    return transcript.translated_text || transcript.original_text;
+  }
+
+  // Fallback: show translated if available
+  return transcript.translated_text || transcript.original_text;
 }
 
 interface SessionContentProps {
@@ -27,6 +63,7 @@ export default function SessionContent({ code }: SessionContentProps) {
   const transcriptEndRef = useRef<HTMLDivElement>(null);
 
   const [participantInfo, setParticipantInfo] = useState<ParticipantInfo | null>(null);
+  const [displayLanguage, setDisplayLanguage] = useState<string>(''); // Current display preference
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedMic, setSelectedMic] = useState<string>('');
   const [isRecording, setIsRecording] = useState(false);
@@ -43,7 +80,15 @@ export default function SessionContent({ code }: SessionContentProps) {
     : undefined;
 
   const handleBroadcast = useCallback(
-    (data: { participantId: string; participantName: string; text: string; translatedText?: string; timestamp: number }) => {
+    (data: {
+      participantId: string;
+      participantName: string;
+      text: string;
+      translatedText?: string;
+      sourceLanguage?: string;
+      targetLanguage?: string;
+      timestamp: number;
+    }) => {
       broadcastStreaming(data);
     },
     [broadcastStreaming],
@@ -74,7 +119,7 @@ export default function SessionContent({ code }: SessionContentProps) {
     [code, participantInfo],
   );
 
-  const { start, stop, state, streamingOriginal, streamingTranslated } = useSessionTranscribe({
+  const { start, stop, state, streamingOriginal, streamingTranslated, currentSourceLanguage, currentTargetLanguage } = useSessionTranscribe({
     sessionCode: code,
     participantId: participantInfo?.participantId || '',
     participantName: participantInfo?.participantName || '',
@@ -83,16 +128,25 @@ export default function SessionContent({ code }: SessionContentProps) {
     onFinalTranscript: handleFinalTranscript,
   });
 
-  // For one-way mode: prefer translated text for display
-  const currentStreamingText = session?.mode === 'one_way'
-    ? (streamingTranslated || streamingOriginal)
-    : streamingOriginal;
+  // Compute local streaming display text based on user's preference
+  const currentStreamingText = getDisplayText(
+    {
+      original_text: streamingOriginal,
+      translated_text: streamingTranslated || undefined,
+      source_language: currentSourceLanguage,
+      target_language: currentTargetLanguage,
+    },
+    displayLanguage,
+    session?.mode || 'one_way'
+  );
 
   // Load participant info from sessionStorage
   useEffect(() => {
     const stored = sessionStorage.getItem(`session_${code}`);
     if (stored) {
-      setParticipantInfo(JSON.parse(stored));
+      const info = JSON.parse(stored);
+      setParticipantInfo(info);
+      setDisplayLanguage(info.preferredLanguage || '');
     } else {
       router.push(`/join?code=${code}`);
     }
@@ -150,6 +204,34 @@ export default function SessionContent({ code }: SessionContentProps) {
     }
   }, [endSession]);
 
+  // Handle display language change
+  const handleDisplayLanguageChange = useCallback(
+    async (newLanguage: string) => {
+      setDisplayLanguage(newLanguage);
+
+      // Update sessionStorage
+      if (participantInfo) {
+        const updatedInfo = { ...participantInfo, preferredLanguage: newLanguage };
+        sessionStorage.setItem(`session_${code}`, JSON.stringify(updatedInfo));
+        setParticipantInfo(updatedInfo);
+      }
+
+      // Update in database (fire and forget)
+      if (participantInfo?.participantId) {
+        try {
+          await fetch(`/api/sessions/${code}/participants/${participantInfo.participantId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ preferredLanguage: newLanguage }),
+          });
+        } catch (err) {
+          console.error('Failed to update display language:', err);
+        }
+      }
+    },
+    [code, participantInfo],
+  );
+
   if (sessionLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-900">
@@ -201,6 +283,21 @@ export default function SessionContent({ code }: SessionContentProps) {
             {session.mode === 'two_way' && ` (${session.language_a?.toUpperCase()} ↔ ${session.language_b?.toUpperCase()})`}
           </div>
         </div>
+
+        {/* Display Language Selector - only for two-way mode */}
+        {session.mode === 'two_way' && session.language_a && session.language_b && (
+          <div className="mb-6">
+            <label className="block text-slate-300 mb-2 text-sm">Display Language</label>
+            <Select
+              value={displayLanguage}
+              onChange={(e) => handleDisplayLanguageChange(e.target.value)}
+              className="text-white text-sm">
+              <option value={session.language_a}>{session.language_a.toUpperCase()}</option>
+              <option value={session.language_b}>{session.language_b.toUpperCase()}</option>
+            </Select>
+            <p className="text-slate-500 text-xs mt-1">All transcripts shown in this language</p>
+          </div>
+        )}
 
         {/* Microphone Selection */}
         <div className="mb-6">
@@ -275,20 +372,34 @@ export default function SessionContent({ code }: SessionContentProps) {
             {transcripts.map((t) => (
               <div key={t.id} className="text-white animate-fadeIn">
                 <span className="text-blue-400 font-medium">{t.participant_name}: </span>
-                <span className="text-2xl">{t.translated_text || t.original_text}</span>
+                <span className="text-2xl">
+                  {getDisplayText(t, displayLanguage, session?.mode || 'one_way')}
+                </span>
               </div>
             ))}
 
             {/* Streaming transcripts from other participants (via Supabase) */}
             {Array.from(streamingTranscripts.entries())
               .filter(([id]) => id !== participantInfo?.participantId) // Don't show own streaming twice
-              .map(([id, data]) => (
-              <div key={id} className="text-yellow-300 transition-opacity duration-150">
-                <span className="text-yellow-400 font-medium">{data.participantName}: </span>
-                <span className="text-2xl">{data.translatedText || data.text}</span>
-                <span className="inline-block w-2 h-6 bg-yellow-400 ml-1 animate-blink" />
-              </div>
-            ))}
+              .map(([id, data]) => {
+                const displayText = getDisplayText(
+                  {
+                    original_text: data.text,
+                    translated_text: data.translatedText,
+                    source_language: data.sourceLanguage,
+                    target_language: data.targetLanguage,
+                  },
+                  displayLanguage,
+                  session?.mode || 'one_way'
+                );
+                return (
+                  <div key={id} className="text-yellow-300 transition-opacity duration-150">
+                    <span className="text-yellow-400 font-medium">{data.participantName}: </span>
+                    <span className="text-2xl">{displayText}</span>
+                    <span className="inline-block w-2 h-6 bg-yellow-400 ml-1 animate-blink" />
+                  </div>
+                );
+              })}
 
             {/* LOCAL streaming text - shows immediately while speaking */}
             {currentStreamingText && isRecording && (

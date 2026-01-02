@@ -8,6 +8,8 @@ interface StreamingTranscript {
   participantName: string;
   text: string;
   translatedText?: string;
+  sourceLanguage?: string;
+  targetLanguage?: string;
   timestamp: number;
 }
 

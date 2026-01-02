@@ -1,16 +1,92 @@
 'use client';
 
-import { useEffect, useRef, use } from 'react';
+import { useEffect, useRef, use, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useSession } from '@/lib/hooks/useSession';
 import { useTranscripts } from '@/lib/hooks/useTranscripts';
+import { Select } from '@/components/select';
+
+// Helper function to get display text based on language preference
+function getDisplayText(
+  transcript: {
+    original_text: string;
+    translated_text?: string | null;
+    source_language?: string | null;
+    target_language?: string | null;
+  },
+  preferredLanguage: string | undefined,
+  sessionMode: string
+): string {
+  // For one-way mode, always show translated if available
+  if (sessionMode === 'one_way') {
+    return transcript.translated_text || transcript.original_text;
+  }
+
+  // For two-way mode, show based on preference
+  if (!preferredLanguage) {
+    return transcript.translated_text || transcript.original_text;
+  }
+
+  // If source matches preference, show original
+  if (transcript.source_language === preferredLanguage) {
+    return transcript.original_text;
+  }
+
+  // If target matches preference, show translated
+  if (transcript.target_language === preferredLanguage) {
+    return transcript.translated_text || transcript.original_text;
+  }
+
+  // Fallback
+  return transcript.translated_text || transcript.original_text;
+}
 
 export default function DisplayPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = use(params);
+  const searchParams = useSearchParams();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const transcriptEndRef = useRef<HTMLDivElement>(null);
 
+  const [displayLanguage, setDisplayLanguage] = useState<string>('');
+
   const { session, isLoading, error } = useSession(code);
   const { transcripts, streamingTranscripts } = useTranscripts(session?.id, code);
+
+  // Initialize display language from URL param, localStorage, or default
+  useEffect(() => {
+    if (!session) return;
+
+    const urlLang = searchParams.get('lang');
+    const storedLang = localStorage.getItem(`display_lang_${code}`);
+
+    if (urlLang && session.mode === 'two_way') {
+      // Validate URL param against session languages
+      if (urlLang === session.language_a || urlLang === session.language_b) {
+        setDisplayLanguage(urlLang);
+        localStorage.setItem(`display_lang_${code}`, urlLang);
+        return;
+      }
+    }
+
+    if (storedLang && session.mode === 'two_way') {
+      // Validate stored lang
+      if (storedLang === session.language_a || storedLang === session.language_b) {
+        setDisplayLanguage(storedLang);
+        return;
+      }
+    }
+
+    // Default to first language
+    if (session.mode === 'two_way' && session.language_a) {
+      setDisplayLanguage(session.language_a);
+    }
+  }, [session, searchParams, code]);
+
+  // Handle language change
+  const handleLanguageChange = (newLang: string) => {
+    setDisplayLanguage(newLang);
+    localStorage.setItem(`display_lang_${code}`, newLang);
+  };
 
   // Auto-scroll to bottom smoothly when content changes
   useEffect(() => {
@@ -55,11 +131,24 @@ export default function DisplayPage({ params }: { params: Promise<{ code: string
           <div className="text-slate-400 text-sm">
             {session.mode === 'one_way' ? 'One-way' : 'Two-way'} Translation
             {session.mode === 'one_way' && ` → ${session.target_language?.toUpperCase()}`}
+            {session.mode === 'two_way' && ` (${session.language_a?.toUpperCase()} ↔ ${session.language_b?.toUpperCase()})`}
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />
-          <span className="text-green-400 text-sm">Live</span>
+        <div className="flex items-center gap-4">
+          {/* Language Selector - only for two-way mode */}
+          {session.mode === 'two_way' && session.language_a && session.language_b && (
+            <Select
+              value={displayLanguage}
+              onChange={(e) => handleLanguageChange(e.target.value)}
+              className="text-white text-sm bg-slate-800 border-slate-600 w-20">
+              <option value={session.language_a}>{session.language_a.toUpperCase()}</option>
+              <option value={session.language_b}>{session.language_b.toUpperCase()}</option>
+            </Select>
+          )}
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />
+            <span className="text-green-400 text-sm">Live</span>
+          </div>
         </div>
       </div>
 
@@ -78,21 +167,33 @@ export default function DisplayPage({ params }: { params: Promise<{ code: string
             >
               <span className="text-blue-400 font-medium text-lg">{t.participant_name}: </span>
               <span className="text-2xl md:text-3xl leading-relaxed">
-                {t.translated_text || t.original_text}
+                {getDisplayText(t, displayLanguage, session.mode)}
               </span>
             </div>
           ))}
 
           {/* Streaming transcripts from other participants */}
-          {Array.from(streamingTranscripts.entries()).map(([id, data]) => (
-            <div key={id} className="text-yellow-300">
-              <span className="text-yellow-400 font-medium text-lg">{data.participantName}: </span>
-              <span className="text-2xl md:text-3xl leading-relaxed">
-                {data.translatedText || data.text}
-              </span>
-              <span className="inline-block w-2 h-6 bg-yellow-400 ml-1 animate-blink" />
-            </div>
-          ))}
+          {Array.from(streamingTranscripts.entries()).map(([id, data]) => {
+            const displayText = getDisplayText(
+              {
+                original_text: data.text,
+                translated_text: data.translatedText,
+                source_language: data.sourceLanguage,
+                target_language: data.targetLanguage,
+              },
+              displayLanguage,
+              session.mode
+            );
+            return (
+              <div key={id} className="text-yellow-300">
+                <span className="text-yellow-400 font-medium text-lg">{data.participantName}: </span>
+                <span className="text-2xl md:text-3xl leading-relaxed">
+                  {displayText}
+                </span>
+                <span className="inline-block w-2 h-6 bg-yellow-400 ml-1 animate-blink" />
+              </div>
+            );
+          })}
 
           <div ref={transcriptEndRef} className="h-4" />
         </div>

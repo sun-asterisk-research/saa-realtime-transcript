@@ -14,8 +14,12 @@ export default function CreateSession() {
   const [mode, setMode] = useState<TranslationMode>('one_way');
   const [targetLanguage, setTargetLanguage] = useState('vi');
   const [languagePair, setLanguagePair] = useState(0);
+  const [preferredLanguage, setPreferredLanguage] = useState(''); // For two-way mode
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Get current language pair for two-way mode
+  const currentPair = LANGUAGE_PAIRS.two_way[languagePair];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,6 +38,7 @@ export default function CreateSession() {
         const pair = LANGUAGE_PAIRS.two_way[languagePair];
         body.languageA = pair.a;
         body.languageB = pair.b;
+        body.preferredLanguage = preferredLanguage || pair.a; // Default to first language
       }
 
       const response = await fetch('/api/sessions', {
@@ -55,6 +60,7 @@ export default function CreateSession() {
           participantId: data.participant.id,
           participantName: data.participant.name,
           isHost: true,
+          preferredLanguage: data.participant.preferred_language,
         }),
       );
 
@@ -115,19 +121,37 @@ export default function CreateSession() {
               </Select>
             </div>
           ) : (
-            <div>
-              <label className="block text-slate-300 mb-2">Language Pair</label>
-              <Select
-                value={languagePair}
-                onChange={(e) => setLanguagePair(Number(e.target.value))}
-                className="text-white">
-                {LANGUAGE_PAIRS.two_way.map((pair, index) => (
-                  <option key={index} value={index}>
-                    {pair.label}
-                  </option>
-                ))}
-              </Select>
-            </div>
+            <>
+              <div>
+                <label className="block text-slate-300 mb-2">Language Pair</label>
+                <Select
+                  value={languagePair}
+                  onChange={(e) => {
+                    setLanguagePair(Number(e.target.value));
+                    setPreferredLanguage(''); // Reset preference when pair changes
+                  }}
+                  className="text-white">
+                  {LANGUAGE_PAIRS.two_way.map((pair, index) => (
+                    <option key={index} value={index}>
+                      {pair.label}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+              <div>
+                <label className="block text-slate-300 mb-2">Your Display Language</label>
+                <Select
+                  value={preferredLanguage || currentPair.a}
+                  onChange={(e) => setPreferredLanguage(e.target.value)}
+                  className="text-white">
+                  <option value={currentPair.a}>{currentPair.a.toUpperCase()}</option>
+                  <option value={currentPair.b}>{currentPair.b.toUpperCase()}</option>
+                </Select>
+                <p className="text-slate-500 text-sm mt-1">
+                  All transcripts will be displayed in this language
+                </p>
+              </div>
+            </>
           )}
 
           {error && <div className="text-red-400 text-sm">{error}</div>}

@@ -9,12 +9,13 @@ interface CreateSessionRequest {
   targetLanguage?: string;
   languageA?: string;
   languageB?: string;
+  preferredLanguage?: string; // Host's display language for two-way mode
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body: CreateSessionRequest = await request.json();
-    const { hostName, mode, targetLanguage, languageA, languageB } = body;
+    const { hostName, mode, targetLanguage, languageA, languageB, preferredLanguage } = body;
 
     if (!hostName || !mode) {
       return NextResponse.json({ error: 'hostName and mode are required' }, { status: 400 });
@@ -59,7 +60,7 @@ export async function POST(request: NextRequest) {
         session_id: session.id,
         name: hostName,
         is_host: true,
-        preferred_language: mode === 'two_way' ? languageA : null,
+        preferred_language: mode === 'two_way' ? (preferredLanguage || languageA) : null,
       })
       .select()
       .single();

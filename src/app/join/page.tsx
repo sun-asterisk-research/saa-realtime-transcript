@@ -6,7 +6,11 @@ import Link from 'next/link';
 import { Button } from '@/components/button';
 import { Input } from '@/components/input';
 import { Select } from '@/components/select';
-import { SUPPORTED_LANGUAGES } from '@/lib/supabase/types';
+interface SessionInfo {
+  mode: string;
+  language_a: string | null;
+  language_b: string | null;
+}
 
 export default function JoinSession() {
   const router = useRouter();
@@ -15,19 +19,28 @@ export default function JoinSession() {
   const [preferredLanguage, setPreferredLanguage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [sessionInfo, setSessionInfo] = useState<{ mode: string } | null>(null);
+  const [sessionInfo, setSessionInfo] = useState<SessionInfo | null>(null);
 
   const handleCodeChange = async (code: string) => {
     setSessionCode(code.toUpperCase());
     setError('');
     setSessionInfo(null);
+    setPreferredLanguage(''); // Reset preference when code changes
 
     if (code.length >= 6) {
       try {
         const response = await fetch(`/api/sessions/${code.toUpperCase()}`);
         if (response.ok) {
           const data = await response.json();
-          setSessionInfo({ mode: data.session.mode });
+          setSessionInfo({
+            mode: data.session.mode,
+            language_a: data.session.language_a,
+            language_b: data.session.language_b,
+          });
+          // Default to first language for two-way mode
+          if (data.session.mode === 'two_way' && data.session.language_a) {
+            setPreferredLanguage(data.session.language_a);
+          }
         }
       } catch {
         // Ignore errors during lookup
@@ -63,6 +76,7 @@ export default function JoinSession() {
           participantId: data.participant.id,
           participantName: data.participant.name,
           isHost: false,
+          preferredLanguage: data.participant.preferred_language,
         }),
       );
 
@@ -107,22 +121,19 @@ export default function JoinSession() {
             />
           </div>
 
-          {sessionInfo?.mode === 'two_way' && (
+          {sessionInfo?.mode === 'two_way' && sessionInfo.language_a && sessionInfo.language_b && (
             <div>
-              <label className="block text-slate-300 mb-2">Preferred Display Language</label>
+              <label className="block text-slate-300 mb-2">Your Display Language</label>
               <Select
                 value={preferredLanguage}
                 onChange={(e) => setPreferredLanguage(e.target.value)}
-                className="text-white">
-                <option value="">Auto-detect</option>
-                {SUPPORTED_LANGUAGES.map((lang) => (
-                  <option key={lang.code} value={lang.code}>
-                    {lang.nativeName} ({lang.name})
-                  </option>
-                ))}
+                className="text-white"
+                required>
+                <option value={sessionInfo.language_a}>{sessionInfo.language_a.toUpperCase()}</option>
+                <option value={sessionInfo.language_b}>{sessionInfo.language_b.toUpperCase()}</option>
               </Select>
               <p className="text-slate-500 text-sm mt-1">
-                In two-way mode, translations will be shown in your preferred language
+                All transcripts will be displayed in this language
               </p>
             </div>
           )}

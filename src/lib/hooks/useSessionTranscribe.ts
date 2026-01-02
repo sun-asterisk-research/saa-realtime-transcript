@@ -19,6 +19,8 @@ interface UseSessionTranscribeParams {
     participantName: string;
     text: string;
     translatedText?: string;
+    sourceLanguage?: string;
+    targetLanguage?: string;
     timestamp: number;
   }) => void;
   onFinalTranscript?: (data: {
@@ -62,16 +64,34 @@ export function useSessionTranscribe({
     if (broadcastKey === lastBroadcastRef.current) return;
     lastBroadcastRef.current = broadcastKey;
 
+    // Get source language from original tokens
+    const sourceLanguage = originalTokens[0]?.language;
+
+    // Determine target language based on translation config
+    let targetLanguage: string | undefined;
+    if (translationConfig) {
+      if (translationConfig.type === 'one_way') {
+        targetLanguage = translationConfig.target_language;
+      } else if (translationConfig.type === 'two_way' && sourceLanguage) {
+        targetLanguage =
+          sourceLanguage === translationConfig.language_a
+            ? translationConfig.language_b
+            : translationConfig.language_a;
+      }
+    }
+
     if (text && onBroadcast) {
       onBroadcast({
         participantId,
         participantName,
         text,
         translatedText: translatedText || undefined,
+        sourceLanguage,
+        targetLanguage,
         timestamp: Date.now(),
       });
     }
-  }, [nonFinalTokens, participantId, participantName, onBroadcast]);
+  }, [nonFinalTokens, participantId, participantName, onBroadcast, translationConfig]);
 
   // Handle final tokens - save to database
   // Soniox sends original and translation tokens in SEPARATE batches
@@ -111,10 +131,13 @@ export function useSessionTranscribe({
 
     // Case 1: We have ONLY original tokens (no translation yet)
     if (originalText && !translatedText) {
-      // Check if source language === target language (no translation needed)
-      const needsTranslation = translationConfig &&
-        translationConfig.type === 'one_way' &&
-        sourceLanguage !== translationConfig.target_language;
+      // Check if translation is needed:
+      // - one_way: only if speaking different language than target
+      // - two_way: always (translates to the other language in pair)
+      const needsTranslation = translationConfig && (
+        (translationConfig.type === 'one_way' && sourceLanguage !== translationConfig.target_language) ||
+        translationConfig.type === 'two_way'
+      );
 
       if (needsTranslation) {
         // Buffer this original, wait for translation batch
@@ -175,14 +198,28 @@ export function useSessionTranscribe({
   }, [stopTranscription]);
 
   // Compute current streaming text for local display (no Supabase needed)
-  const streamingOriginal = nonFinalTokens
-    .filter((t) => t.translation_status !== 'translation')
-    .map((t) => t.text)
-    .join('');
+  const originalTokens = nonFinalTokens.filter((t) => t.translation_status !== 'translation');
+  const streamingOriginal = originalTokens.map((t) => t.text).join('');
   const streamingTranslated = nonFinalTokens
     .filter((t) => t.translation_status === 'translation')
     .map((t) => t.text)
     .join('');
+
+  // Get current source language from streaming tokens
+  const currentSourceLanguage = originalTokens[0]?.language;
+
+  // Compute current target language
+  let currentTargetLanguage: string | undefined;
+  if (translationConfig && currentSourceLanguage) {
+    if (translationConfig.type === 'one_way') {
+      currentTargetLanguage = translationConfig.target_language;
+    } else if (translationConfig.type === 'two_way') {
+      currentTargetLanguage =
+        currentSourceLanguage === translationConfig.language_a
+          ? translationConfig.language_b
+          : translationConfig.language_a;
+    }
+  }
 
   return {
     start,
@@ -194,5 +231,7 @@ export function useSessionTranscribe({
     // For local streaming display
     streamingOriginal,
     streamingTranslated,
+    currentSourceLanguage,
+    currentTargetLanguage,
   };
 }

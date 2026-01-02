@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'SAA 2025 CEO Talk - Realtime Transcript',
-  description: 'Real-time speech-to-text transcription and translation for Sun Asterisk Annual 2025 CEO Talk',
+  title: 'Sun Asterisk Realtime Translation',
+  description: 'Realtime translation app for Sun Asterisk meeting',
   icons: {
     icon: '/favicon.svg',
   },

@@ -40,13 +40,27 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Session has ended' }, { status: 400 });
     }
 
+    // Validate preferredLanguage for two-way mode
+    let validatedPreferredLanguage = preferredLanguage || null;
+    if (session.mode === 'two_way' && preferredLanguage) {
+      if (preferredLanguage !== session.language_a && preferredLanguage !== session.language_b) {
+        return NextResponse.json(
+          { error: `preferredLanguage must be ${session.language_a} or ${session.language_b}` },
+          { status: 400 }
+        );
+      }
+    } else if (session.mode === 'two_way' && !preferredLanguage) {
+      // Default to language_a if not specified
+      validatedPreferredLanguage = session.language_a;
+    }
+
     // Add participant
     const { data: participantData, error: participantError } = await supabase
       .from('participants')
       .insert({
         session_id: session.id,
         name,
-        preferred_language: preferredLanguage || null,
+        preferred_language: validatedPreferredLanguage,
         is_host: false,
       })
       .select()
