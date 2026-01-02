@@ -6,15 +6,20 @@ Real-time speech-to-text transcription and translation system for **Sun Asterisk
 
 - **Real-time Speech-to-Text**: Transcribe Vietnamese speech in real-time
 - **Live Translation**: Automatically translate to English, Vietnamese, or Japanese
+- **Session-based Translation**: Multi-participant sessions with unique codes
+- **One-way Mode**: All participants translate to a single target language
+- **Two-way Mode**: Bidirectional translation between two languages
 - **Large Display Mode**: Fullscreen mode optimized for projection on large screens
 - **Visual Highlighting**: New words being transcribed are highlighted in red with larger font
 - **Camera Preview**: Display speaker video alongside transcription
 - **Custom Context**: Pre-configured with Sun Asterisk terminology for improved accuracy
+- **Transcript History**: View past session transcripts
 
 ## Tech Stack
 
-- **Next.js 15** - React framework
+- **Next.js 15** - React framework with App Router
 - **Soniox Speech-to-Text API** - Real-time transcription and translation
+- **Supabase** - Database, real-time subscriptions, and authentication
 - **Tailwind CSS** - Styling
 - **TypeScript** - Type safety
 
@@ -23,6 +28,7 @@ Real-time speech-to-text transcription and translation system for **Sun Asterisk
 ### Prerequisites
 
 - Node.js 20+
+- Docker Desktop (for Supabase local)
 - Yarn or npm
 - Soniox API Key (get it at [console.soniox.com](https://console.soniox.com))
 
@@ -31,7 +37,7 @@ Real-time speech-to-text transcription and translation system for **Sun Asterisk
 1. Install dependencies:
 
 ```bash
-yarn install
+npm install
 ```
 
 2. Create environment file:
@@ -46,13 +52,51 @@ cp .env.example .env
 SONIOX_API_KEY=your_api_key_here
 ```
 
-4. Start development server:
+### Start Supabase (Local Database)
+
+4. Start Supabase local development:
 
 ```bash
-yarn dev
+npx supabase start
 ```
 
-5. Open [http://localhost:3000](http://localhost:3000)
+5. Get the API keys (for reference):
+
+```bash
+npx supabase status
+```
+
+The default keys are already in `.env.example`. After first start, migrations run automatically.
+
+6. (Optional) Reset database to re-apply migrations and seeds:
+
+```bash
+npx supabase db reset
+```
+
+### Start Development Server
+
+7. Start the Next.js development server:
+
+```bash
+npm run dev
+```
+
+8. Open [http://localhost:3000](http://localhost:3000)
+
+### Supabase Studio
+
+Access Supabase Studio at [http://127.0.0.1:54323](http://127.0.0.1:54323) to view and manage your database.
+
+### Stop Services
+
+```bash
+# Stop Supabase
+npx supabase stop
+
+# Stop with data cleanup
+npx supabase stop --no-backup
+```
 
 ## Usage
 
@@ -107,21 +151,83 @@ The application is pre-configured with Sun Asterisk context for better recogniti
 - Only temporary API keys (5-minute expiry) are sent to the client
 - Never commit `.env` file to version control
 
+## Session-based Translation
+
+### Creating a Session
+
+1. Go to `/create` to create a new session
+2. Enter host name and choose translation mode:
+   - **One-way**: All participants see translation in one target language
+   - **Two-way**: Bidirectional translation between two languages
+3. Share the session code with participants
+
+### Joining a Session
+
+1. Go to `/join` or enter session code on homepage
+2. Enter your name to join
+3. Start speaking - your speech will be transcribed and translated
+
+### Session Display
+
+- `/session/[code]` - Active session with transcription
+- `/session/[code]/display` - Large display mode for projection
+- `/history` - View past session transcripts
+
 ## Project Structure
 
 ```
-src/
-├── app/
-│   ├── page.tsx              # Entry point with dynamic import
-│   ├── live-transcript.tsx   # Main transcription component
-│   └── api/
-│       └── get-temporary-api-key/
-│           └── route.ts      # Secure API key endpoint
-├── components/
-│   └── button.tsx            # UI components
-└── lib/
-    ├── useTranscribe.ts      # Transcription hook
-    └── utils.ts              # Utility functions
+├── supabase/
+│   ├── config.toml                    # Supabase CLI configuration
+│   ├── migrations/
+│   │   └── 20260102000000_init_schema.sql  # Database schema
+│   └── seeds/
+│       ├── common/                    # Seeds for all environments
+│       └── dev/                       # Development-only seeds
+├── src/
+│   ├── app/
+│   │   ├── page.tsx                   # Landing page
+│   │   ├── live-transcript.tsx        # Live transcription component
+│   │   ├── create/                    # Create session page
+│   │   ├── join/                      # Join session page
+│   │   ├── session/[code]/            # Session pages
+│   │   ├── history/                   # Session history page
+│   │   └── api/
+│   │       ├── get-temporary-api-key/ # Soniox API key endpoint
+│   │       └── sessions/              # Session CRUD endpoints
+│   ├── components/
+│   │   ├── button.tsx                 # Button component
+│   │   └── input.tsx                  # Input component
+│   └── lib/
+│       ├── supabase/
+│       │   ├── client.ts              # Browser Supabase client
+│       │   ├── server.ts              # Server Supabase client
+│       │   ├── admin-client.ts        # Admin client (bypasses RLS)
+│       │   └── types.ts               # Database types
+│       ├── useTranscribe.ts           # Transcription hook
+│       └── utils.ts                   # Utility functions
+└── .env                               # Environment variables
+```
+
+## Supabase Commands Reference
+
+```bash
+# Start local Supabase
+npx supabase start
+
+# Check status and get API keys
+npx supabase status
+
+# Reset database (run migrations + seeds)
+npx supabase db reset
+
+# Create new migration
+npx supabase migration new <name>
+
+# Apply pending migrations
+npx supabase migration up
+
+# Stop Supabase
+npx supabase stop
 ```
 
 ## License
@@ -130,4 +236,4 @@ Internal use for Sun Asterisk Annual 2025 event.
 
 ---
 
-Built with Soniox Speech-to-Text Web SDK
+Built with Soniox Speech-to-Text Web SDK and Supabase

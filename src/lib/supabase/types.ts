@@ -1,0 +1,94 @@
+export type TranslationMode = 'one_way' | 'two_way';
+export type SessionStatus = 'active' | 'ended';
+
+export interface Session {
+  id: string;
+  code: string;
+  host_name: string;
+  mode: TranslationMode;
+  target_language: string | null;
+  language_a: string | null;
+  language_b: string | null;
+  status: SessionStatus;
+  created_at: string;
+  ended_at: string | null;
+}
+
+export interface Participant {
+  id: string;
+  session_id: string;
+  name: string;
+  preferred_language: string | null;
+  is_host: boolean;
+  joined_at: string;
+  left_at: string | null;
+}
+
+export interface Transcript {
+  id: string;
+  session_id: string;
+  participant_id: string | null;
+  participant_name: string;
+  original_text: string;
+  translated_text: string | null;
+  source_language: string | null;
+  target_language: string | null;
+  is_final: boolean;
+  sequence_number: number;
+  created_at: string;
+}
+
+export interface Database {
+  public: {
+    Tables: {
+      sessions: {
+        Row: Session;
+        Insert: Omit<Session, 'id' | 'created_at' | 'ended_at' | 'status'> & {
+          id?: string;
+          created_at?: string;
+          ended_at?: string | null;
+          status?: SessionStatus;
+        };
+        Update: Partial<Session>;
+      };
+      participants: {
+        Row: Participant;
+        Insert: Omit<Participant, 'id' | 'joined_at' | 'left_at' | 'is_host'> & {
+          id?: string;
+          joined_at?: string;
+          left_at?: string | null;
+          is_host?: boolean;
+        };
+        Update: Partial<Participant>;
+      };
+      transcripts: {
+        Row: Transcript;
+        Insert: Omit<Transcript, 'id' | 'created_at' | 'sequence_number'> & {
+          id?: string;
+          created_at?: string;
+          sequence_number?: number;
+        };
+        Update: Partial<Transcript>;
+      };
+    };
+  };
+}
+
+export const SUPPORTED_LANGUAGES = [
+  { code: 'en', name: 'English', nativeName: 'English' },
+  { code: 'vi', name: 'Vietnamese', nativeName: 'Tiếng Việt' },
+  { code: 'ja', name: 'Japanese', nativeName: '日本語' },
+] as const;
+
+export const LANGUAGE_PAIRS = {
+  one_way: [
+    { label: 'To English', target: 'en' },
+    { label: 'To Vietnamese', target: 'vi' },
+    { label: 'To Japanese', target: 'ja' },
+  ],
+  two_way: [
+    { label: 'English ↔ Vietnamese', a: 'en', b: 'vi' },
+    { label: 'Japanese ↔ Vietnamese', a: 'ja', b: 'vi' },
+    { label: 'Japanese ↔ English', a: 'ja', b: 'en' },
+  ],
+} as const;
