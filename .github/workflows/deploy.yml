@@ -12,7 +12,7 @@ env:
 
 jobs:
   deploy-database:
-    name: Deploy Database & Seed Data
+    name: Deploy Database Migrations
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -26,13 +26,12 @@ jobs:
       - name: Link Supabase project
         run: supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
 
-      - name: Push migrations and seeds
-        run: supabase db push --include-all
+      - name: Push migrations
+        run: supabase db push
 
       - name: Deployment summary
         if: success()
         run: |
           echo "✅ Database deployment successful!"
-          echo "✅ Migrations applied"
-          echo "✅ Seed data loaded (common/*.sql)"
+          echo "✅ Migrations applied (including seed data)"
           echo "📦 Context sets: Technology, Business, Medical, Sun Asterisk"
