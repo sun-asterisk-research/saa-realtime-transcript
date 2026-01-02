@@ -23,6 +23,9 @@ jobs:
         with:
           version: latest
 
+      - name: Setup PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
       - name: Link Supabase project
         run: supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
 
@@ -41,23 +44,24 @@ jobs:
           echo "✅ Seed data completed"
 
       - name: Verify context sets
+        env:
+          SUPABASE_DB_URL: postgresql://postgres:${{ secrets.SUPABASE_DB_PASSWORD }}@db.${{ secrets.SUPABASE_PROJECT_REF }}.supabase.co:5432/postgres
         run: |
           echo "🔍 Verifying public context sets..."
-          cat > /tmp/verify.sql <<'EOF'
-          SELECT
-            cs.name,
-            COUNT(DISTINCT t.id) as terms,
-            COUNT(DISTINCT g.id) as metadata,
-            COUNT(DISTINCT tt.id) as translations
-          FROM context_sets cs
-          LEFT JOIN context_set_terms t ON cs.id = t.context_set_id
-          LEFT JOIN context_set_general g ON cs.id = g.context_set_id
-          LEFT JOIN context_set_translation_terms tt ON cs.id = tt.context_set_id
-          WHERE cs.is_public = true
-          GROUP BY cs.id, cs.name
-          ORDER BY cs.created_at;
-          EOF
-          supabase db execute --file /tmp/verify.sql
+          psql "$SUPABASE_DB_URL" -c "
+            SELECT
+              cs.name,
+              COUNT(DISTINCT t.id) as terms,
+              COUNT(DISTINCT g.id) as metadata,
+              COUNT(DISTINCT tt.id) as translations
+            FROM context_sets cs
+            LEFT JOIN context_set_terms t ON cs.id = t.context_set_id
+            LEFT JOIN context_set_general g ON cs.id = g.context_set_id
+            LEFT JOIN context_set_translation_terms tt ON cs.id = tt.context_set_id
+            WHERE cs.is_public = true
+            GROUP BY cs.id, cs.name
+            ORDER BY cs.created_at;
+          "
 
       - name: Deployment summary
         if: always()
