@@ -56,7 +56,14 @@ export default function HistoryPage({ params }: { params: Promise<{ code: string
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString();
+    return new Date(dateString).toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZoneName: 'short',
+    });
   };
 
   return (
@@ -64,14 +71,24 @@ export default function HistoryPage({ params }: { params: Promise<{ code: string
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <Link href="/" className="text-slate-400 hover:text-white mb-4 inline-block">
-            &larr; Back to Home
-          </Link>
+          <div className="flex gap-4 mb-4">
+            <Link href="/" className="text-slate-400 hover:text-white">
+              &larr; Back to Home
+            </Link>
+            <Link href="/dashboard" className="text-slate-400 hover:text-white">
+              &larr; Back to Dashboard
+            </Link>
+          </div>
 
-          <h1 className="text-3xl font-bold text-white mb-2">Session History</h1>
+          <h1 className="text-3xl font-bold text-white mb-2">
+            {session.title || 'Session History'}
+          </h1>
 
           <div className="text-slate-400 space-y-1">
-            <div>Code: {session.code}</div>
+            {session.description && (
+              <div className="text-slate-300 mb-2">{session.description}</div>
+            )}
+            <div>Code: <span className="font-mono text-white">{session.code}</span></div>
             <div>Host: {session.host_name}</div>
             <div>
               Mode: {session.mode === 'one_way' ? 'One-way' : 'Two-way'}

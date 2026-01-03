@@ -133,15 +133,23 @@ export function SessionCard({ session, role, onJoin, className }: SessionCardPro
         </Button>
       )}
 
-      {/* Info for Past Sessions */}
+      {/* View History Button for Past Sessions */}
       {isPast && session.ended_at && (
-        <div className="text-slate-500 text-xs mt-2">
-          Ended {new Date(session.ended_at).toLocaleString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
+        <div className="mt-3 space-y-2">
+          <div className="text-slate-500 text-xs">
+            Ended {new Date(session.ended_at).toLocaleString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+              timeZoneName: 'short',
+            })}
+          </div>
+          <Button
+            onClick={() => window.location.href = `/history/${session.code}`}
+            className="w-full bg-slate-600 border-slate-600 text-white hover:bg-slate-700">
+            View History
+          </Button>
         </div>
       )}
     </div>
