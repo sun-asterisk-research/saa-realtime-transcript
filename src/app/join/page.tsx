@@ -237,7 +237,14 @@ function JoinSessionContent() {
               {sessionData.session.description && <div className="text-slate-300 mt-2">{sessionData.session.description}</div>}
               {sessionData.session.scheduled_start_time && (
                 <div>
-                  Scheduled: {new Date(sessionData.session.scheduled_start_time).toLocaleString()}
+                  Scheduled: {new Date(sessionData.session.scheduled_start_time).toLocaleString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    timeZoneName: 'short',
+                  })}
                 </div>
               )}
             </div>

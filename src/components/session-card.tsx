@@ -109,6 +109,7 @@ export function SessionCard({ session, role, onJoin, className }: SessionCardPro
                 day: 'numeric',
                 hour: '2-digit',
                 minute: '2-digit',
+                timeZoneName: 'short',
               })}
             </span>
           </div>

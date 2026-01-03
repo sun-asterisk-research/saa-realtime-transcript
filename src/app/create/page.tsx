@@ -29,6 +29,7 @@ export default function CreateSession() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [userTimezone, setUserTimezone] = useState('');
 
   // Fetch all context sets to show selected ones
   const { contextSets } = useContextSets(user?.id);
@@ -47,6 +48,12 @@ export default function CreateSession() {
       setHostName(name);
     }
   }, [user, hostName]);
+
+  // Get user's timezone
+  useEffect(() => {
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    setUserTimezone(timezone);
+  }, []);
 
   // Get current language pair for two-way mode
   const currentPair = LANGUAGE_PAIRS.two_way[languagePair];
@@ -77,14 +84,19 @@ export default function CreateSession() {
     setIsLoading(true);
 
     try {
-      // Validate scheduled start time if provided
+      // Validate and convert scheduled start time if provided
+      let scheduledStartTimeISO: string | undefined = undefined;
       if (scheduledStartTime) {
+        // datetime-local returns "YYYY-MM-DDTHH:mm" which is interpreted as local time
+        // Convert it to a proper ISO string with timezone
         const scheduledDate = new Date(scheduledStartTime);
         if (scheduledDate <= new Date()) {
           setError('Scheduled start time must be in the future');
           setIsLoading(false);
           return;
         }
+        // toISOString() converts to UTC, which is what we want for storage
+        scheduledStartTimeISO = scheduledDate.toISOString();
       }
 
       const body: Record<string, any> = {
@@ -92,7 +104,7 @@ export default function CreateSession() {
         title,
         description: description || undefined,
         mode,
-        scheduledStartTime: scheduledStartTime || undefined,
+        scheduledStartTime: scheduledStartTimeISO,
         isPublic,
         invitedEmails,
       };
@@ -254,7 +266,14 @@ export default function CreateSession() {
 
           {/* Scheduled Start Time */}
           <div>
-            <label className="block text-slate-300 mb-2">Schedule for Later (Optional)</label>
+            <label className="block text-slate-300 mb-2">
+              Schedule for Later (Optional)
+              {userTimezone && (
+                <span className="text-slate-500 text-sm ml-2">
+                  (Your timezone: {userTimezone})
+                </span>
+              )}
+            </label>
             <input
               type="datetime-local"
               value={scheduledStartTime}
@@ -262,7 +281,7 @@ export default function CreateSession() {
               className="w-full px-3 py-2 bg-transparent border border-primary rounded-md text-white"
             />
             <p className="text-slate-500 text-sm mt-1">
-              Leave empty to start immediately. Invited users can join before scheduled time.
+              Leave empty to start immediately. Time is in your local timezone.
             </p>
           </div>
 
