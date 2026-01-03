@@ -75,7 +75,7 @@ export default function SessionContent({ code }: SessionContentProps) {
 
   const { session, isLoading: sessionLoading, error: sessionError, endSession } = useSession(code);
   const { participants, leaveSession } = useParticipants(session?.id, code);
-  const { transcripts, streamingTranscripts, broadcastStreaming } = useTranscripts(session?.id, code);
+  const { transcripts, streamingTranscripts, broadcastStreaming, addTranscript } = useTranscripts(session?.id, code);
   const {
     contextSets,
     mergedContext,
@@ -111,7 +111,7 @@ export default function SessionContent({ code }: SessionContentProps) {
       if (!participantInfo) return;
 
       try {
-        await fetch(`/api/sessions/${code}/transcripts`, {
+        const response = await fetch(`/api/sessions/${code}/transcripts`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -124,11 +124,17 @@ export default function SessionContent({ code }: SessionContentProps) {
             isFinal: true,
           }),
         });
+
+        if (response.ok) {
+          const result = await response.json();
+          // Manually add transcript to state (don't wait for real-time event)
+          addTranscript(result.transcript);
+        }
       } catch (err) {
         console.error('Failed to save transcript:', err);
       }
     },
-    [code, participantInfo],
+    [code, participantInfo, addTranscript],
   );
 
   const { start, stop, state, streamingOriginal, streamingTranslated, currentSourceLanguage, currentTargetLanguage } = useSessionTranscribe({

@@ -19,6 +19,7 @@ interface UseTranscriptsResult {
   isLoading: boolean;
   error: string | null;
   broadcastStreaming: (data: StreamingTranscript) => void;
+  addTranscript: (transcript: Transcript) => void;
 }
 
 export function useTranscripts(sessionId: string | undefined, code: string): UseTranscriptsResult {
@@ -55,6 +56,18 @@ export function useTranscripts(sessionId: string | undefined, code: string): Use
     [],
   );
 
+  const addTranscript = useCallback((transcript: Transcript) => {
+    setTranscripts((prev) => [...prev, transcript]);
+    // Clear streaming transcript for this participant
+    if (transcript.participant_id) {
+      setStreamingTranscripts((prev) => {
+        const next = new Map(prev);
+        next.delete(transcript.participant_id!);
+        return next;
+      });
+    }
+  }, []);
+
   useEffect(() => {
     fetchTranscripts();
   }, [fetchTranscripts]);
@@ -78,9 +91,13 @@ export function useTranscripts(sessionId: string | undefined, code: string): Use
           if (newTranscript.is_final) {
             setTranscripts((prev) => [...prev, newTranscript]);
             // Clear streaming transcript for this participant
+            // Use participant_id as key to match with streaming map
             setStreamingTranscripts((prev) => {
               const next = new Map(prev);
-              next.delete(newTranscript.participant_id || newTranscript.participant_name);
+              // Try to delete using participant_id first (should match streaming key)
+              if (newTranscript.participant_id) {
+                next.delete(newTranscript.participant_id);
+              }
               return next;
             });
           }
@@ -110,5 +127,6 @@ export function useTranscripts(sessionId: string | undefined, code: string): Use
     isLoading,
     error,
     broadcastStreaming,
+    addTranscript,
   };
 }
