@@ -12,6 +12,7 @@ interface ContextManagementPanelProps {
   mergedContext?: Context;
   isLoading: boolean;
   disabled?: boolean;
+  isHost?: boolean;
   onContextChange: () => void | Promise<void>;
   onAddContextSets: (contextSetIds: string[]) => Promise<void>;
   onRemoveContextSet: (contextSetId: string) => Promise<void>;
@@ -24,6 +25,7 @@ export function ContextManagementPanel({
   mergedContext,
   isLoading,
   disabled = false,
+  isHost = false,
   onContextChange,
   onAddContextSets,
   onRemoveContextSet,
@@ -60,15 +62,17 @@ export function ContextManagementPanel({
     <div className="mb-6">
       <div className="flex items-center justify-between mb-2">
         <label className="block text-slate-300 text-sm">Context Sets</label>
-        <Button
-          onClick={() => setIsModalOpen(true)}
-          disabled={disabled}
-          className="text-xs h-7 px-2 bg-blue-600 border-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
-          + Add Context
-        </Button>
+        {isHost && (
+          <Button
+            onClick={() => setIsModalOpen(true)}
+            disabled={disabled}
+            className="text-xs h-7 px-2 bg-blue-600 border-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+            + Add Context
+          </Button>
+        )}
       </div>
 
-      {disabled && (
+      {isHost && disabled && (
         <div className="text-xs text-amber-400 mb-2">⚠️ Stop recording to manage contexts</div>
       )}
 
@@ -99,12 +103,14 @@ export function ContextManagementPanel({
                     )}
                   </div>
                 </div>
-                <button
-                  onClick={() => handleRemoveContext(contextSet.id, contextSet.name)}
-                  disabled={disabled}
-                  className="ml-2 text-red-400 hover:text-red-300 disabled:opacity-50 disabled:cursor-not-allowed">
-                  &times;
-                </button>
+                {isHost && (
+                  <button
+                    onClick={() => handleRemoveContext(contextSet.id, contextSet.name)}
+                    disabled={disabled}
+                    className="ml-2 text-red-400 hover:text-red-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                    &times;
+                  </button>
+                )}
               </div>
             ))}
           </div>

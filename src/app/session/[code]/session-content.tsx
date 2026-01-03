@@ -383,6 +383,7 @@ export default function SessionContent({ code }: SessionContentProps) {
           mergedContext={mergedContext}
           isLoading={contextsLoading}
           disabled={isRecording || isScheduled}
+          isHost={participantInfo?.isHost || false}
           onContextChange={handleContextChange}
           onAddContextSets={addContextSets}
           onRemoveContextSet={removeContextSet}

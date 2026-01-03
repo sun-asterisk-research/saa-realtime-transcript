@@ -113,6 +113,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Add participant with user_id if authenticated
+    // Set is_host to true if user is the session creator
+    const isHost = user ? session.creator_user_id === user.id : false;
+
     const { data: participantData, error: participantError } = await supabase
       .from('participants')
       .insert({
@@ -120,7 +123,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         user_id: user?.id || null, // Link to user if authenticated
         name,
         preferred_language: validatedPreferredLanguage,
-        is_host: false,
+        is_host: isHost,
       })
       .select()
       .single();
