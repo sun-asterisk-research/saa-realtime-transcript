@@ -12,6 +12,7 @@ import { useTranscripts } from '@/lib/hooks/useTranscripts';
 import { useSessionTranscribe } from '@/lib/hooks/useSessionTranscribe';
 import { useSessionContexts } from '@/lib/hooks/useSessionContexts';
 import { ContextManagementPanel } from '@/components/context/ContextManagementPanel';
+import { JoinRequestNotifications } from '@/components/join-request-notifications';
 import type { TranslationConfig } from '@soniox/speech-to-text-web';
 
 interface ParticipantInfo {
@@ -405,6 +406,11 @@ export default function SessionContent({ code }: SessionContentProps) {
           } text-white disabled:opacity-50 disabled:cursor-not-allowed`}>
           {isRecording ? 'Stop Recording' : isScheduled ? 'Waiting for scheduled time...' : 'Start Recording'}
         </Button>
+
+        {/* Join Request Notifications - only for host */}
+        {participantInfo?.isHost && (
+          <JoinRequestNotifications sessionId={session.id} sessionCode={code} />
+        )}
 
         {/* Participants */}
         <div className="flex-1 overflow-auto mb-4">

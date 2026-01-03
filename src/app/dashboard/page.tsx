@@ -57,8 +57,70 @@ export default function Dashboard() {
     }
   };
 
-  const handleJoinSession = (code: string) => {
-    router.push(`/session/${code}`);
+  const handleJoinSession = async (sessionCode: string) => {
+    // Find the session to check if user is creator
+    const session = [...sessions.mySessions, ...sessions.invitedSessions].find(s => s.code === sessionCode);
+
+    if (!session) {
+      router.push(`/join?code=${sessionCode}`);
+      return;
+    }
+
+    // If user is creator or invited, auto-join them
+    const isCreator = session.creator_user_id === user?.id;
+    const isInvited = sessions.invitedSessions.some(s => s.code === sessionCode);
+
+    if (isCreator || isInvited) {
+      try {
+        // Fetch user's full name from profile
+        let userName = user?.email?.split('@')[0] || 'User';
+        try {
+          const profileRes = await fetch(`/api/users/search?q=${encodeURIComponent(user?.email || '')}&limit=1`);
+          if (profileRes.ok) {
+            const profileData = await profileRes.json();
+            if (profileData.users && profileData.users.length > 0) {
+              userName = profileData.users[0].full_name;
+            }
+          }
+        } catch (err) {
+          console.error('Failed to fetch profile:', err);
+        }
+
+        // Auto-join the session
+        const response = await fetch(`/api/sessions/${sessionCode}/join`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: userName,
+            preferredLanguage: session.mode === 'two_way' ? session.language_a : undefined,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          // Store participant info in sessionStorage
+          sessionStorage.setItem(
+            `session_${sessionCode}`,
+            JSON.stringify({
+              participantId: data.participant.id,
+              participantName: data.participant.name,
+              isHost: data.participant.is_host,
+              preferredLanguage: data.participant.preferred_language,
+            }),
+          );
+          router.push(`/session/${sessionCode}`);
+        } else {
+          // If join fails, redirect to join page
+          router.push(`/join?code=${sessionCode}`);
+        }
+      } catch (error) {
+        console.error('Failed to auto-join session:', error);
+        router.push(`/join?code=${sessionCode}`);
+      }
+    } else {
+      // For public sessions or sessions without access, go to join page
+      router.push(`/join?code=${sessionCode}`);
+    }
   };
 
   // Categorize sessions

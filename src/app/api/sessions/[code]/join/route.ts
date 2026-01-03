@@ -51,21 +51,28 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     let hasAccess = session.is_public;
 
     if (!hasAccess && user) {
-      // Check if user is invited
-      const { data: invitation } = await supabase
-        .from('session_invitations')
-        .select('*')
-        .eq('session_id', session.id)
-        .eq('email', user.email!)
-        .maybeSingle();
-
-      if (invitation) {
+      // Check if user is the creator
+      if (session.creator_user_id === user.id) {
         hasAccess = true;
-        // Update invitation status to accepted
-        await supabase
+      }
+
+      // Check if user is invited
+      if (!hasAccess) {
+        const { data: invitation } = await supabase
           .from('session_invitations')
-          .update({ status: 'accepted', responded_at: new Date().toISOString() })
-          .eq('id', invitation.id);
+          .select('*')
+          .eq('session_id', session.id)
+          .eq('email', user.email!)
+          .maybeSingle();
+
+        if (invitation) {
+          hasAccess = true;
+          // Update invitation status to accepted
+          await supabase
+            .from('session_invitations')
+            .update({ status: 'accepted', responded_at: new Date().toISOString() })
+            .eq('id', invitation.id);
+        }
       }
 
       // Check if user has approved join request

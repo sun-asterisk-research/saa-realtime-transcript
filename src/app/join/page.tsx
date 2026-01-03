@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/button';
 import { Input } from '@/components/input';
@@ -16,9 +16,10 @@ interface SessionData {
   userJoinRequestStatus: 'pending' | 'approved' | 'rejected' | null;
 }
 
-export default function JoinSession() {
+function JoinSessionContent() {
   const router = useRouter();
-  const { user } = useUser();
+  const searchParams = useSearchParams();
+  const { user, isLoading: isUserLoading } = useUser();
   const [sessionCode, setSessionCode] = useState('');
   const [name, setName] = useState('');
   const [preferredLanguage, setPreferredLanguage] = useState('');
@@ -28,6 +29,50 @@ export default function JoinSession() {
   const [success, setSuccess] = useState('');
   const [sessionData, setSessionData] = useState<SessionData | null>(null);
   const [showRequestForm, setShowRequestForm] = useState(false);
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      const currentPath = '/join';
+      const codeParam = searchParams.get('code');
+      const redirectUrl = codeParam ? `${currentPath}?code=${codeParam}` : currentPath;
+      router.push(`/login?redirect=${encodeURIComponent(redirectUrl)}`);
+    }
+  }, [user, isUserLoading, router, searchParams]);
+
+  // Pre-fill session code from URL parameter
+  useEffect(() => {
+    const codeFromUrl = searchParams.get('code');
+    if (codeFromUrl && !sessionCode) {
+      handleCodeChange(codeFromUrl);
+    }
+  }, [searchParams]);
+
+  // Auto-fill user's name from profile
+  useEffect(() => {
+    if (user && !name) {
+      // Fetch user profile to get full name
+      const fetchProfile = async () => {
+        try {
+          const response = await fetch(`/api/users/search?q=${encodeURIComponent(user.email || '')}&limit=1`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.users && data.users.length > 0) {
+              setName(data.users[0].full_name);
+            } else {
+              // Fallback to email username if profile not found
+              setName(user.email?.split('@')[0] || '');
+            }
+          }
+        } catch (error) {
+          console.error('Failed to fetch profile:', error);
+          // Fallback to email username
+          setName(user.email?.split('@')[0] || '');
+        }
+      };
+      fetchProfile();
+    }
+  }, [user, name]);
 
   const handleCodeChange = async (code: string) => {
     setSessionCode(code.toUpperCase());
@@ -141,6 +186,20 @@ export default function JoinSession() {
       setIsLoading(false);
     }
   };
+
+  // Show loading while checking authentication
+  if (isUserLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-slate-900 to-slate-800">
+        <div className="text-white">Loading...</div>
+      </div>
+    );
+  }
+
+  // Don't render if not authenticated (will redirect)
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-slate-900 to-slate-800 p-4">
@@ -258,5 +317,17 @@ export default function JoinSession() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function JoinSession() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-slate-900 to-slate-800">
+        <div className="text-white">Loading...</div>
+      </div>
+    }>
+      <JoinSessionContent />
+    </Suspense>
   );
 }
