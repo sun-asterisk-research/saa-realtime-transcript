@@ -71,6 +71,7 @@ export default function SessionContent({ code }: SessionContentProps) {
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedMic, setSelectedMic] = useState<string>('');
   const [isRecording, setIsRecording] = useState(false);
+  const [isScheduled, setIsScheduled] = useState(false);
 
   const { session, isLoading: sessionLoading, error: sessionError, endSession } = useSession(code);
   const { participants, leaveSession } = useParticipants(session?.id, code);
@@ -192,6 +193,22 @@ export default function SessionContent({ code }: SessionContentProps) {
     }
   }, [transcripts, streamingTranscripts, currentStreamingText]);
 
+  // Initialize and update isScheduled state
+  useEffect(() => {
+    if (!session?.scheduled_start_time) {
+      setIsScheduled(false);
+      return;
+    }
+
+    const checkScheduled = () => {
+      const now = new Date();
+      const scheduledTime = new Date(session.scheduled_start_time!);
+      setIsScheduled(scheduledTime > now);
+    };
+
+    checkScheduled();
+  }, [session?.scheduled_start_time]);
+
   const handleStartStop = useCallback(() => {
     if (isRecording) {
       stop();
@@ -302,9 +319,6 @@ export default function SessionContent({ code }: SessionContentProps) {
     );
   }
 
-  // Check if session is scheduled and not yet started
-  const isScheduled = !!(session.scheduled_start_time && new Date(session.scheduled_start_time) > new Date());
-
   return (
     <div className="h-screen flex flex-col bg-slate-900 overflow-hidden">
       {/* Countdown Banner */}
@@ -312,7 +326,7 @@ export default function SessionContent({ code }: SessionContentProps) {
         <div className="bg-yellow-600/20 border-b border-yellow-600 p-4 text-center flex-shrink-0">
           <div className="text-yellow-300 flex items-center justify-center gap-3">
             <span className="font-medium">Session scheduled to start in</span>
-            <CountdownTimer targetTime={session.scheduled_start_time!} />
+            <CountdownTimer targetTime={session.scheduled_start_time!} onComplete={() => setIsScheduled(false)} />
           </div>
           <p className="text-yellow-400/80 text-sm mt-1">
             Recording will be enabled when the session starts at the scheduled time.
@@ -443,61 +457,61 @@ export default function SessionContent({ code }: SessionContentProps) {
 
       {/* Right Panel - Transcripts */}
       <div className="flex-1 flex flex-col bg-[#092432] min-h-0">
-        <div
-          ref={scrollContainerRef}
-          className="flex-1 overflow-y-auto p-6 scroll-smooth"
-        >
-          <div className="space-y-4">
-            {/* Final transcripts from database */}
-            {transcripts.map((t) => (
-              <div key={t.id} className="text-white animate-fadeIn">
-                <span className="text-blue-400 font-medium">{t.participant_name}: </span>
-                <span className="text-2xl">
-                  {getDisplayText(t, displayLanguage, session?.mode || 'one_way')}
-                </span>
-              </div>
-            ))}
-
-            {/* Streaming transcripts from other participants (via Supabase) */}
-            {Array.from(streamingTranscripts.entries())
-              .filter(([id]) => id !== participantInfo?.participantId) // Don't show own streaming twice
-              .map(([id, data]) => {
-                const displayText = getDisplayText(
-                  {
-                    original_text: data.text,
-                    translated_text: data.translatedText,
-                    source_language: data.sourceLanguage,
-                    target_language: data.targetLanguage,
-                  },
-                  displayLanguage,
-                  session?.mode || 'one_way'
-                );
-                return (
-                  <div key={id} className="text-yellow-300 transition-opacity duration-150">
-                    <span className="text-yellow-400 font-medium">{data.participantName}: </span>
-                    <span className="text-2xl">{displayText}</span>
-                    <span className="inline-block w-2 h-6 bg-yellow-400 ml-1 animate-blink" />
-                  </div>
-                );
-              })}
-
-            {/* LOCAL streaming text - shows immediately while speaking */}
-            {currentStreamingText && isRecording && (
-              <div className="text-yellow-300">
-                <span className="text-yellow-400 font-medium">{participantInfo?.participantName}: </span>
-                <span className="text-2xl">{currentStreamingText}</span>
-                <span className="inline-block w-2 h-6 bg-yellow-400 ml-1 animate-blink" />
-              </div>
-            )}
-
-            <div ref={transcriptEndRef} />
-          </div>
-        </div>
-
-        {/* Empty state */}
-        {transcripts.length === 0 && streamingTranscripts.size === 0 && !currentStreamingText && (
+        {/* Show empty state OR scroll container, not both */}
+        {transcripts.length === 0 && streamingTranscripts.size === 0 && !currentStreamingText ? (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-slate-500 text-xl">Start recording to see transcripts...</div>
+          </div>
+        ) : (
+          <div
+            ref={scrollContainerRef}
+            className="flex-1 overflow-y-auto p-6 scroll-smooth"
+          >
+            <div className="space-y-4">
+              {/* Final transcripts from database */}
+              {transcripts.map((t) => (
+                <div key={t.id} className="text-white animate-fadeIn">
+                  <span className="text-blue-400 font-medium">{t.participant_name}: </span>
+                  <span className="text-2xl">
+                    {getDisplayText(t, displayLanguage, session?.mode || 'one_way')}
+                  </span>
+                </div>
+              ))}
+
+              {/* Streaming transcripts from other participants (via Supabase) */}
+              {Array.from(streamingTranscripts.entries())
+                .filter(([id]) => id !== participantInfo?.participantId) // Don't show own streaming twice
+                .map(([id, data]) => {
+                  const displayText = getDisplayText(
+                    {
+                      original_text: data.text,
+                      translated_text: data.translatedText,
+                      source_language: data.sourceLanguage,
+                      target_language: data.targetLanguage,
+                    },
+                    displayLanguage,
+                    session?.mode || 'one_way'
+                  );
+                  return (
+                    <div key={id} className="text-yellow-300 transition-opacity duration-150">
+                      <span className="text-yellow-400 font-medium">{data.participantName}: </span>
+                      <span className="text-2xl">{displayText}</span>
+                      <span className="inline-block w-2 h-6 bg-yellow-400 ml-1 animate-blink" />
+                    </div>
+                  );
+                })}
+
+              {/* LOCAL streaming text - shows immediately while speaking */}
+              {currentStreamingText && isRecording && (
+                <div className="text-yellow-300">
+                  <span className="text-yellow-400 font-medium">{participantInfo?.participantName}: </span>
+                  <span className="text-2xl">{currentStreamingText}</span>
+                  <span className="inline-block w-2 h-6 bg-yellow-400 ml-1 animate-blink" />
+                </div>
+              )}
+
+              <div ref={transcriptEndRef} />
+            </div>
           </div>
         )}
       </div>
