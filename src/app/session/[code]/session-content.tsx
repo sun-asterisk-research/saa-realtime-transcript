@@ -302,7 +302,7 @@ export default function SessionContent({ code }: SessionContentProps) {
   }
 
   // Check if session is scheduled and not yet started
-  const isScheduled = session.scheduled_start_time && new Date(session.scheduled_start_time) > new Date();
+  const isScheduled = !!(session.scheduled_start_time && new Date(session.scheduled_start_time) > new Date());
 
   return (
     <div className="h-screen flex flex-col bg-slate-900 overflow-hidden">
@@ -314,7 +314,7 @@ export default function SessionContent({ code }: SessionContentProps) {
             <CountdownTimer targetTime={session.scheduled_start_time!} />
           </div>
           <p className="text-yellow-400/80 text-sm mt-1">
-            You can join now. Transcription will be available at the scheduled time.
+            Recording will be enabled when the session starts at the scheduled time.
           </p>
         </div>
       )}
@@ -365,7 +365,7 @@ export default function SessionContent({ code }: SessionContentProps) {
             value={selectedMic}
             onChange={(e) => setSelectedMic(e.target.value)}
             className="text-white text-sm"
-            disabled={isRecording}>
+            disabled={isRecording || isScheduled}>
             {audioDevices.map((device) => (
               <option key={device.deviceId} value={device.deviceId}>
                 {device.label || `Microphone ${device.deviceId.slice(0, 8)}`}
@@ -381,7 +381,7 @@ export default function SessionContent({ code }: SessionContentProps) {
           contextSets={contextSets}
           mergedContext={mergedContext}
           isLoading={contextsLoading}
-          disabled={isRecording}
+          disabled={isRecording || isScheduled}
           onContextChange={handleContextChange}
           onAddContextSets={addContextSets}
           onRemoveContextSet={removeContextSet}
@@ -399,10 +399,11 @@ export default function SessionContent({ code }: SessionContentProps) {
         {/* Start/Stop Button */}
         <Button
           onClick={handleStartStop}
+          disabled={isScheduled}
           className={`w-full h-12 mb-4 ${
             isRecording ? 'bg-red-600 border-red-600 hover:bg-red-700' : 'bg-green-600 border-green-600 hover:bg-green-700'
-          } text-white`}>
-          {isRecording ? 'Stop Recording' : 'Start Recording'}
+          } text-white disabled:opacity-50 disabled:cursor-not-allowed`}>
+          {isRecording ? 'Stop Recording' : isScheduled ? 'Waiting for scheduled time...' : 'Start Recording'}
         </Button>
 
         {/* Participants */}
