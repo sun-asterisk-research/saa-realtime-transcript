@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/button';
 import { Input } from '@/components/input';
 import type { ContextSetWithDetails, ContextSetFormData } from '@/lib/supabase/types';
+import { generateContextSetTemplate, generateAnnotatedTemplate, generateChatGPTPrompt } from '@/lib/context/json-template';
+import { validateImportedJson } from '@/lib/context/json-validator';
 
 interface ContextSetFormModalProps {
   isOpen: boolean;
@@ -13,7 +15,7 @@ interface ContextSetFormModalProps {
   userId: string;
 }
 
-type TabType = 'basic' | 'terms' | 'general' | 'translation' | 'text';
+type TabType = 'basic' | 'terms' | 'general' | 'translation' | 'text' | 'import';
 
 export function ContextSetFormModal({ isOpen, onClose, onSubmit, contextSet, userId }: ContextSetFormModalProps) {
   const [activeTab, setActiveTab] = useState<TabType>('basic');
@@ -30,6 +32,11 @@ export function ContextSetFormModal({ isOpen, onClose, onSubmit, contextSet, use
     { source: '', target: '' },
   ]);
   const [text, setText] = useState('');
+
+  // Import JSON state
+  const [importJson, setImportJson] = useState('');
+  const [importError, setImportError] = useState('');
+  const [importSuccess, setImportSuccess] = useState(false);
 
   // Load context set data when editing
   useEffect(() => {
@@ -95,6 +102,112 @@ export function ContextSetFormModal({ isOpen, onClose, onSubmit, contextSet, use
     }
   };
 
+  /**
+   * Loads the JSON template into the textarea
+   */
+  const handleLoadTemplate = () => {
+    const template = generateContextSetTemplate();
+    setImportJson(template);
+    setImportError('');
+    setImportSuccess(false);
+  };
+
+  /**
+   * Copies JSON template to clipboard
+   */
+  const handleCopyTemplate = async () => {
+    const template = generateContextSetTemplate();
+    try {
+      await navigator.clipboard.writeText(template);
+      alert('Template copied to clipboard!');
+    } catch (err) {
+      alert('Failed to copy to clipboard. Please copy manually from the textarea after clicking "Load Template".');
+    }
+  };
+
+  /**
+   * Generates and copies ChatGPT prompt to clipboard
+   */
+  const handleCopyChatGPTPrompt = async () => {
+    const prompt = generateChatGPTPrompt();
+    try {
+      await navigator.clipboard.writeText(prompt);
+      alert('ChatGPT prompt copied to clipboard! Paste it into ChatGPT to generate your JSON.');
+    } catch (err) {
+      alert('Failed to copy to clipboard.');
+    }
+  };
+
+  /**
+   * Validates and imports JSON, populating all form fields
+   */
+  const handleImportJson = () => {
+    setImportError('');
+    setImportSuccess(false);
+
+    const result = validateImportedJson(importJson);
+
+    if (!result.isValid) {
+      setImportError(result.errors.join('\n'));
+      return;
+    }
+
+    // Show warnings if any
+    if (result.warnings.length > 0) {
+      console.warn('Import warnings:', result.warnings);
+    }
+
+    // Populate all form fields
+    const data = result.data!;
+    setName(data.name);
+    setDescription(data.description || '');
+    setIsPublic(data.is_public);
+
+    // Ensure at least one empty field for arrays
+    setTerms(data.terms.length > 0 ? data.terms : ['']);
+    setGeneral(data.general.length > 0 ? data.general : [{ key: '', value: '' }]);
+    setTranslationTerms(data.translation_terms.length > 0 ? data.translation_terms : [{ source: '', target: '' }]);
+    setText(data.text || '');
+
+    setImportSuccess(true);
+
+    // Auto-switch to Basic tab so user can review
+    setTimeout(() => {
+      setActiveTab('basic');
+    }, 1500);
+  };
+
+  /**
+   * Exports current form data as JSON
+   */
+  const handleExportJson = async () => {
+    const formData: ContextSetFormData = {
+      name: name.trim() || 'Untitled Context Set',
+      description: description.trim() || undefined,
+      text: text.trim() || undefined,
+      is_public: isPublic,
+      terms: terms.filter((t) => t.trim()).map((t) => t.trim()),
+      general: general.filter((g) => g.key.trim() && g.value.trim()),
+      translation_terms: translationTerms.filter((tt) => tt.source.trim() && tt.target.trim()),
+    };
+
+    const jsonString = JSON.stringify(formData, null, 2);
+
+    try {
+      await navigator.clipboard.writeText(jsonString);
+      alert('JSON copied to clipboard!');
+    } catch (err) {
+      // Fallback: create download link
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${formData.name.replace(/[^a-z0-9]/gi, '_')}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -118,6 +231,7 @@ export function ContextSetFormModal({ isOpen, onClose, onSubmit, contextSet, use
             { id: 'general' as TabType, label: 'Metadata' },
             { id: 'translation' as TabType, label: 'Translations' },
             { id: 'text' as TabType, label: 'Text' },
+            { id: 'import' as TabType, label: 'Import JSON' },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -169,6 +283,17 @@ export function ContextSetFormModal({ isOpen, onClose, onSubmit, contextSet, use
                     <span>Make this context set public</span>
                   </label>
                   <p className="text-slate-500 text-sm mt-1">Public context sets can be used by anyone</p>
+                </div>
+
+                <div className="pt-4 border-t border-slate-700">
+                  <label className="block text-slate-300 mb-2">Export Current Data</label>
+                  <p className="text-slate-500 text-sm mb-2">Export the current form data as JSON (useful for backups or sharing)</p>
+                  <Button
+                    type="button"
+                    onClick={handleExportJson}
+                    className="text-sm h-8 bg-slate-700 border-slate-600 text-white hover:bg-slate-600">
+                    Export as JSON
+                  </Button>
                 </div>
               </>
             )}
@@ -335,6 +460,81 @@ export function ContextSetFormModal({ isOpen, onClose, onSubmit, contextSet, use
                     maxLength={10000}
                   />
                   <div className="text-slate-500 text-xs mt-1 text-right">{text.length} / 10,000 characters</div>
+                </div>
+              </>
+            )}
+
+            {/* Import JSON Tab */}
+            {activeTab === 'import' && (
+              <>
+                <div>
+                  <label className="block text-slate-300 mb-2">Import Context Set from JSON</label>
+                  <p className="text-slate-500 text-sm mb-3">
+                    Paste JSON data below to auto-populate all tabs. You can review and modify before saving.
+                  </p>
+
+                  {/* Template section */}
+                  <div className="mb-4 flex gap-2 flex-wrap">
+                    <Button
+                      type="button"
+                      onClick={handleLoadTemplate}
+                      className="text-sm h-8 bg-slate-700 border-slate-600 text-white hover:bg-slate-600">
+                      Load Template
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={handleCopyTemplate}
+                      className="text-sm h-8 bg-slate-700 border-slate-600 text-white hover:bg-slate-600">
+                      Copy Template to Clipboard
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={handleCopyChatGPTPrompt}
+                      className="text-sm h-8 bg-blue-600 border-blue-600 text-white hover:bg-blue-700">
+                      Generate ChatGPT Prompt
+                    </Button>
+                  </div>
+
+                  {/* JSON editor textarea */}
+                  <textarea
+                    value={importJson}
+                    onChange={(e) => {
+                      setImportJson(e.target.value);
+                      setImportError('');
+                      setImportSuccess(false);
+                    }}
+                    placeholder="Paste JSON here or click 'Load Template' to see the structure..."
+                    className="flex w-full rounded-md border border-primary text-white bg-slate-900 px-3 py-2 text-base shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50 md:text-sm min-h-[400px] font-mono text-xs"
+                    spellCheck={false}
+                  />
+
+                  {/* Character count */}
+                  <div className="text-slate-500 text-xs mt-1 text-right">{importJson.length} characters</div>
+
+                  {/* Import error */}
+                  {importError && (
+                    <div className="mt-3 p-3 bg-red-900/20 border border-red-900/50 rounded text-red-400 text-sm whitespace-pre-wrap">
+                      {importError}
+                    </div>
+                  )}
+
+                  {/* Import success */}
+                  {importSuccess && (
+                    <div className="mt-3 p-3 bg-green-900/20 border border-green-900/50 rounded text-green-400 text-sm">
+                      ✓ JSON imported successfully! Review the other tabs and click Create/Update to save.
+                    </div>
+                  )}
+
+                  {/* Import button */}
+                  <div className="mt-4">
+                    <Button
+                      type="button"
+                      onClick={handleImportJson}
+                      disabled={!importJson.trim()}
+                      className="px-6 bg-blue-600 border-blue-600 text-white hover:bg-blue-700">
+                      Import and Populate Form
+                    </Button>
+                  </div>
                 </div>
               </>
             )}
