@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/button';
 import { Select } from '@/components/select';
+import { CountdownTimer } from '@/components/countdown-timer';
 import { useSession } from '@/lib/hooks/useSession';
 import { useParticipants } from '@/lib/hooks/useParticipants';
 import { useTranscripts } from '@/lib/hooks/useTranscripts';
@@ -300,24 +301,47 @@ export default function SessionContent({ code }: SessionContentProps) {
     );
   }
 
+  // Check if session is scheduled and not yet started
+  const isScheduled = session.scheduled_start_time && new Date(session.scheduled_start_time) > new Date();
+
   return (
-    <div className="h-screen flex bg-slate-900 overflow-hidden">
-      {/* Left Panel - Controls */}
-      <div className="w-80 bg-slate-800 p-4 flex flex-col border-r border-slate-700 flex-shrink-0">
-        {/* Session Info */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-semibold text-white">Session: {code}</h2>
-            <Link href={`/session/${code}/display`} target="_blank" className="text-sm text-blue-400 hover:text-blue-300">
-              Display View
-            </Link>
+    <div className="h-screen flex flex-col bg-slate-900 overflow-hidden">
+      {/* Countdown Banner */}
+      {isScheduled && (
+        <div className="bg-yellow-600/20 border-b border-yellow-600 p-4 text-center flex-shrink-0">
+          <div className="text-yellow-300 flex items-center justify-center gap-3">
+            <span className="font-medium">Session scheduled to start in</span>
+            <CountdownTimer targetTime={session.scheduled_start_time!} />
           </div>
-          <div className="text-sm text-slate-400">
-            Mode: {session.mode === 'one_way' ? 'One-way' : 'Two-way'}
-            {session.mode === 'one_way' && ` → ${session.target_language?.toUpperCase()}`}
-            {session.mode === 'two_way' && ` (${session.language_a?.toUpperCase()} ↔ ${session.language_b?.toUpperCase()})`}
-          </div>
+          <p className="text-yellow-400/80 text-sm mt-1">
+            You can join now. Transcription will be available at the scheduled time.
+          </p>
         </div>
+      )}
+
+      {/* Main Content */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left Panel - Controls */}
+        <div className="w-80 bg-slate-800 p-4 flex flex-col border-r border-slate-700 flex-shrink-0">
+          {/* Session Info */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-lg font-semibold text-white">
+                {session.title || `Session: ${code}`}
+              </h2>
+              <Link href={`/session/${code}/display`} target="_blank" className="text-sm text-blue-400 hover:text-blue-300">
+                Display View
+              </Link>
+            </div>
+            {session.description && (
+              <p className="text-sm text-slate-400 mb-2">{session.description}</p>
+            )}
+            <div className="text-sm text-slate-400">
+              Mode: {session.mode === 'one_way' ? 'One-way' : 'Two-way'}
+              {session.mode === 'one_way' && ` → ${session.target_language?.toUpperCase()}`}
+              {session.mode === 'two_way' && ` (${session.language_a?.toUpperCase()} ↔ ${session.language_b?.toUpperCase()})`}
+            </div>
+          </div>
 
         {/* Display Language Selector - only for two-way mode */}
         {session.mode === 'two_way' && session.language_a && session.language_b && (
@@ -468,6 +492,7 @@ export default function SessionContent({ code }: SessionContentProps) {
             <div className="text-slate-500 text-xl">Start recording to see transcripts...</div>
           </div>
         )}
+      </div>
       </div>
     </div>
   );

@@ -5,6 +5,12 @@ export interface Session {
   id: string;
   code: string;
   host_name: string;
+  title: string | null;
+  description: string | null;
+  creator_user_id: string | null;
+  scheduled_start_time: string | null;
+  is_public: boolean;
+  allow_join_requests: boolean;
   mode: TranslationMode;
   target_language: string | null;
   language_a: string | null;
@@ -17,6 +23,7 @@ export interface Session {
 export interface Participant {
   id: string;
   session_id: string;
+  user_id: string | null;
   name: string;
   preferred_language: string | null;
   is_host: boolean;
@@ -36,6 +43,38 @@ export interface Transcript {
   is_final: boolean;
   sequence_number: number;
   created_at: string;
+}
+
+// Access Control & Invitation Types
+export interface Profile {
+  id: string;
+  email: string;
+  full_name: string;
+  avatar_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SessionInvitation {
+  id: string;
+  session_id: string;
+  email: string;
+  invited_by_user_id: string | null;
+  status: 'pending' | 'accepted' | 'declined';
+  invited_at: string;
+  responded_at: string | null;
+}
+
+export interface JoinRequest {
+  id: string;
+  session_id: string;
+  email: string | null;
+  name: string;
+  message: string | null;
+  status: 'pending' | 'approved' | 'rejected';
+  requested_at: string;
+  responded_at: string | null;
+  responded_by_user_id: string | null;
 }
 
 // Context Management Types
@@ -184,6 +223,33 @@ export interface Database {
           added_at?: string;
         };
         Update: Partial<Omit<SessionContextSet, 'id' | 'added_at'>>;
+      };
+      profiles: {
+        Row: Profile;
+        Insert: Omit<Profile, 'created_at' | 'updated_at'> & {
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Omit<Profile, 'id' | 'created_at' | 'updated_at'>>;
+      };
+      session_invitations: {
+        Row: SessionInvitation;
+        Insert: Omit<SessionInvitation, 'id' | 'invited_at' | 'responded_at'> & {
+          id?: string;
+          invited_at?: string;
+          responded_at?: string | null;
+        };
+        Update: Partial<Omit<SessionInvitation, 'id' | 'invited_at'>>;
+      };
+      join_requests: {
+        Row: JoinRequest;
+        Insert: Omit<JoinRequest, 'id' | 'requested_at' | 'responded_at' | 'responded_by_user_id'> & {
+          id?: string;
+          requested_at?: string;
+          responded_at?: string | null;
+          responded_by_user_id?: string | null;
+        };
+        Update: Partial<Omit<JoinRequest, 'id' | 'requested_at'>>;
       };
     };
   };

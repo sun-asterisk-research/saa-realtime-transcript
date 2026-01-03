@@ -14,6 +14,14 @@ export default function Home() {
     router.push('/');
   };
 
+  const handleCreateClick = () => {
+    if (!isAuthenticated) {
+      router.push('/login?redirect=/create');
+    } else {
+      router.push('/create');
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-slate-900 to-slate-800 p-4">
       {/* Auth bar */}
@@ -53,24 +61,32 @@ export default function Home() {
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4">
-        <Link href="/create">
-          <Button className="min-w-[200px] h-12 text-base bg-blue-600 border-blue-600 text-white hover:bg-blue-700">
-            Create Session
-          </Button>
-        </Link>
+        <Button
+          onClick={handleCreateClick}
+          className="min-w-[200px] h-12 text-base bg-blue-600 border-blue-600 text-white hover:bg-blue-700"
+        >
+          {isAuthenticated ? 'Create Session' : 'Sign In to Create Session'}
+        </Button>
         <Link href="/join">
           <Button className="min-w-[200px] h-12 text-base">Join Session</Button>
         </Link>
       </div>
 
-      <div className="mt-8 text-slate-500 text-sm">
+      <div className="mt-8 text-slate-500 text-sm text-center">
         <p>Create a session as host or join an existing one with a code</p>
         {isAuthenticated && (
-          <p className="mt-2">
-            <Link href="/contexts" className="text-blue-400 hover:text-blue-300">
-              Manage Context Sets →
-            </Link>
-          </p>
+          <div className="mt-4 space-y-2">
+            <p>
+              <Link href="/dashboard" className="text-blue-400 hover:text-blue-300 font-medium">
+                View My Sessions →
+              </Link>
+            </p>
+            <p>
+              <Link href="/contexts" className="text-blue-400 hover:text-blue-300">
+                Manage Context Sets →
+              </Link>
+            </p>
+          </div>
         )}
       </div>
     </div>

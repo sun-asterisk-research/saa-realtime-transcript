@@ -7,18 +7,24 @@ import { Button } from '@/components/button';
 import { Input } from '@/components/input';
 import { Select } from '@/components/select';
 import { ContextSelectorModal } from '@/components/context/ContextSelectorModal';
+import { EmailChipInput } from '@/components/email-chip-input';
 import { useUser } from '@/lib/hooks/useUser';
 import { useContextSets } from '@/lib/hooks/useContextSets';
 import { LANGUAGE_PAIRS, type TranslationMode } from '@/lib/supabase/types';
 
 export default function CreateSession() {
   const router = useRouter();
-  const { user } = useUser();
+  const { user, isLoading: isUserLoading } = useUser();
   const [hostName, setHostName] = useState('');
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
   const [mode, setMode] = useState<TranslationMode>('one_way');
   const [targetLanguage, setTargetLanguage] = useState('vi');
   const [languagePair, setLanguagePair] = useState(0);
   const [preferredLanguage, setPreferredLanguage] = useState(''); // For two-way mode
+  const [scheduledStartTime, setScheduledStartTime] = useState('');
+  const [isPublic, setIsPublic] = useState(false);
+  const [invitedEmails, setInvitedEmails] = useState<string[]>([]);
   const [selectedContextIds, setSelectedContextIds] = useState<string[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -26,6 +32,13 @@ export default function CreateSession() {
 
   // Fetch all context sets to show selected ones
   const { contextSets } = useContextSets(user?.id);
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.push('/login?redirect=/create');
+    }
+  }, [user, isUserLoading, router]);
 
   // Auto-fill name from Google account when user is logged in
   useEffect(() => {
@@ -64,9 +77,24 @@ export default function CreateSession() {
     setIsLoading(true);
 
     try {
+      // Validate scheduled start time if provided
+      if (scheduledStartTime) {
+        const scheduledDate = new Date(scheduledStartTime);
+        if (scheduledDate <= new Date()) {
+          setError('Scheduled start time must be in the future');
+          setIsLoading(false);
+          return;
+        }
+      }
+
       const body: Record<string, any> = {
         hostName,
+        title,
+        description: description || undefined,
         mode,
+        scheduledStartTime: scheduledStartTime || undefined,
+        isPublic,
+        invitedEmails,
       };
 
       if (mode === 'one_way') {
@@ -124,6 +152,33 @@ export default function CreateSession() {
         <h1 className="text-3xl font-bold text-white mb-8">Create Session</h1>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Session Title */}
+          <div>
+            <label className="block text-slate-300 mb-2">
+              Session Title <span className="text-red-400">*</span>
+            </label>
+            <Input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g., Internal meeting with SONY client"
+              required
+              className="text-white"
+            />
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="block text-slate-300 mb-2">Description (Optional)</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Add notes about this session..."
+              className="w-full px-3 py-2 bg-transparent border border-primary rounded-md text-white placeholder:text-slate-400 min-h-[80px] resize-y"
+              rows={3}
+            />
+          </div>
+
+          {/* Your Name */}
           <div>
             <label className="block text-slate-300 mb-2">Your Name</label>
             <Input
@@ -135,6 +190,7 @@ export default function CreateSession() {
             />
           </div>
 
+          {/* Translation Mode */}
           <div>
             <label className="block text-slate-300 mb-2">Translation Mode</label>
             <Select value={mode} onChange={(e) => setMode(e.target.value as TranslationMode)} className="text-white">
@@ -196,6 +252,55 @@ export default function CreateSession() {
             </>
           )}
 
+          {/* Scheduled Start Time */}
+          <div>
+            <label className="block text-slate-300 mb-2">Schedule for Later (Optional)</label>
+            <input
+              type="datetime-local"
+              value={scheduledStartTime}
+              onChange={(e) => setScheduledStartTime(e.target.value)}
+              className="w-full px-3 py-2 bg-transparent border border-primary rounded-md text-white"
+            />
+            <p className="text-slate-500 text-sm mt-1">
+              Leave empty to start immediately. Invited users can join before scheduled time.
+            </p>
+          </div>
+
+          {/* Privacy Settings */}
+          <div>
+            <label className="block text-slate-300 mb-2">Privacy</label>
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-slate-300 cursor-pointer">
+                <input
+                  type="radio"
+                  checked={isPublic}
+                  onChange={() => setIsPublic(true)}
+                  className="text-blue-600"
+                />
+                <span>Public - Anyone with code can join</span>
+              </label>
+              <label className="flex items-center gap-2 text-slate-300 cursor-pointer">
+                <input
+                  type="radio"
+                  checked={!isPublic}
+                  onChange={() => setIsPublic(false)}
+                  className="text-blue-600"
+                />
+                <span>Private - Only invited users (allows join requests)</span>
+              </label>
+            </div>
+          </div>
+
+          {/* Invite Participants */}
+          {!isPublic && (
+            <EmailChipInput
+              value={invitedEmails}
+              onChange={setInvitedEmails}
+              label="Invite Participants (Optional)"
+              placeholder="Search by name or email..."
+            />
+          )}
+
           {/* Context Sets Selection (Optional) */}
           <div>
             <div className="flex items-center justify-between mb-2">
@@ -244,7 +349,7 @@ export default function CreateSession() {
 
           <Button
             type="submit"
-            disabled={isLoading || !hostName}
+            disabled={isLoading || !hostName || !title}
             className="w-full h-12 bg-blue-600 border-blue-600 text-white hover:bg-blue-700">
             {isLoading ? 'Creating...' : 'Create Session'}
           </Button>

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin-client';
+import { createServerClient } from '@/lib/supabase/server';
 import type { Session, Participant } from '@/lib/supabase/types';
 
 interface RouteParams {
@@ -21,6 +22,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'name is required' }, { status: 400 });
     }
 
+    // Get authenticated user (optional)
+    const supabaseAuth = await createServerClient();
+    const {
+      data: { user },
+    } = await supabaseAuth.auth.getUser();
+
     const supabase = getAdminClient();
 
     // Get session
@@ -40,6 +47,50 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Session has ended' }, { status: 400 });
     }
 
+    // Validate access permissions
+    let hasAccess = session.is_public;
+
+    if (!hasAccess && user) {
+      // Check if user is invited
+      const { data: invitation } = await supabase
+        .from('session_invitations')
+        .select('*')
+        .eq('session_id', session.id)
+        .eq('email', user.email!)
+        .maybeSingle();
+
+      if (invitation) {
+        hasAccess = true;
+        // Update invitation status to accepted
+        await supabase
+          .from('session_invitations')
+          .update({ status: 'accepted', responded_at: new Date().toISOString() })
+          .eq('id', invitation.id);
+      }
+
+      // Check if user has approved join request
+      if (!hasAccess) {
+        const { data: joinReq } = await supabase
+          .from('join_requests')
+          .select('*')
+          .eq('session_id', session.id)
+          .eq('email', user.email!)
+          .eq('status', 'approved')
+          .maybeSingle();
+
+        if (joinReq) {
+          hasAccess = true;
+        }
+      }
+    }
+
+    if (!hasAccess) {
+      return NextResponse.json(
+        { error: 'You are not invited to this session. Please request access.' },
+        { status: 403 }
+      );
+    }
+
     // Validate preferredLanguage for two-way mode
     let validatedPreferredLanguage = preferredLanguage || null;
     if (session.mode === 'two_way' && preferredLanguage) {
@@ -54,11 +105,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       validatedPreferredLanguage = session.language_a;
     }
 
-    // Add participant
+    // Add participant with user_id if authenticated
     const { data: participantData, error: participantError } = await supabase
       .from('participants')
       .insert({
         session_id: session.id,
+        user_id: user?.id || null, // Link to user if authenticated
         name,
         preferred_language: validatedPreferredLanguage,
         is_host: false,
