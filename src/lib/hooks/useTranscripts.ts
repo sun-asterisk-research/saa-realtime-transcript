@@ -57,7 +57,13 @@ export function useTranscripts(sessionId: string | undefined, code: string): Use
   );
 
   const addTranscript = useCallback((transcript: Transcript) => {
-    setTranscripts((prev) => [...prev, transcript]);
+    setTranscripts((prev) => {
+      // Check if transcript already exists (by ID)
+      if (prev.some((t) => t.id === transcript.id)) {
+        return prev; // Already exists, don't add
+      }
+      return [...prev, transcript];
+    });
     // Clear streaming transcript for this participant
     if (transcript.participant_id) {
       setStreamingTranscripts((prev) => {
@@ -89,7 +95,13 @@ export function useTranscripts(sessionId: string | undefined, code: string): Use
         (payload) => {
           const newTranscript = payload.new as Transcript;
           if (newTranscript.is_final) {
-            setTranscripts((prev) => [...prev, newTranscript]);
+            setTranscripts((prev) => {
+              // Check if transcript already exists (by ID)
+              if (prev.some((t) => t.id === newTranscript.id)) {
+                return prev; // Already exists, don't add
+              }
+              return [...prev, newTranscript];
+            });
             // Clear streaming transcript for this participant
             // Use participant_id as key to match with streaming map
             setStreamingTranscripts((prev) => {
