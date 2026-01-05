@@ -33,12 +33,11 @@ export default function ExtensionCallbackPage() {
 
     setStatus('success');
 
-    // Disable auto-close for debugging
-    // TODO: Re-enable after debugging
-    // setTimeout(() => {
-    //   console.log('[ExtensionCallback] Auto-closing window...');
-    //   window.close();
-    // }, 3000);
+    // Auto-close after 2 seconds (give time for message to be received)
+    setTimeout(() => {
+      console.log('[ExtensionCallback] Auto-closing window...');
+      window.close();
+    }, 2000);
   }, [searchParams]);
 
   return (

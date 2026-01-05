@@ -37,7 +37,8 @@ function Popup() {
           setTranscriptionState(msg.payload.state.transcription.state);
         }
       } else if (msg.type === MessageType.CONTEXTS_LOADED) {
-        setContexts(msg.payload.contexts || []);
+        const loadedContexts = msg.payload.contexts;
+        setContexts(Array.isArray(loadedContexts) ? loadedContexts : []);
       } else if (msg.type === MessageType.ERROR) {
         setError(msg.payload.error);
       }
@@ -188,7 +189,7 @@ function Popup() {
 
       <section className="contexts">
         <h3>Select Contexts</h3>
-        {contexts.length === 0 ? (
+        {!contexts || contexts.length === 0 ? (
           <p className="no-contexts">No contexts available</p>
         ) : (
           <ul className="context-list">
