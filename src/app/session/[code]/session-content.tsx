@@ -22,7 +22,29 @@ interface ParticipantInfo {
   preferredLanguage?: string;
 }
 
+// Generate consistent color for each participant
+function getParticipantColor(participantName: string): string {
+  const colors = [
+    'text-blue-400',
+    'text-green-400',
+    'text-purple-400',
+    'text-pink-400',
+    'text-cyan-400',
+    'text-orange-400',
+    'text-teal-400',
+    'text-indigo-400',
+  ];
+
+  // Simple hash function to get consistent color for same name
+  let hash = 0;
+  for (let i = 0; i < participantName.length; i++) {
+    hash = participantName.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
+}
+
 // Helper function to get display text based on user's language preference
+// Returns { text, isTranslated } to know if we're showing translated version
 function getDisplayText(
   transcript: {
     original_text: string;
@@ -32,29 +54,47 @@ function getDisplayText(
   },
   preferredLanguage: string | undefined,
   sessionMode: string
-): string {
+): { text: string; isTranslated: boolean } {
   // For one-way mode, always show translated if available
   if (sessionMode === 'one_way') {
-    return transcript.translated_text || transcript.original_text;
+    const hasTranslation = !!transcript.translated_text;
+    return {
+      text: transcript.translated_text || transcript.original_text,
+      isTranslated: hasTranslation,
+    };
   }
 
   // For two-way mode, show based on user's preference
   if (!preferredLanguage) {
-    return transcript.translated_text || transcript.original_text;
+    const hasTranslation = !!transcript.translated_text;
+    return {
+      text: transcript.translated_text || transcript.original_text,
+      isTranslated: hasTranslation,
+    };
   }
 
   // If source matches preference, show original
   if (transcript.source_language === preferredLanguage) {
-    return transcript.original_text;
+    return {
+      text: transcript.original_text,
+      isTranslated: false,
+    };
   }
 
   // If target matches preference, show translated
   if (transcript.target_language === preferredLanguage) {
-    return transcript.translated_text || transcript.original_text;
+    return {
+      text: transcript.translated_text || transcript.original_text,
+      isTranslated: !!transcript.translated_text,
+    };
   }
 
   // Fallback: show translated if available
-  return transcript.translated_text || transcript.original_text;
+  const hasTranslation = !!transcript.translated_text;
+  return {
+    text: transcript.translated_text || transcript.original_text,
+    isTranslated: hasTranslation,
+  };
 }
 
 interface SessionContentProps {
@@ -148,7 +188,7 @@ export default function SessionContent({ code }: SessionContentProps) {
   });
 
   // Compute local streaming display text based on user's preference
-  const currentStreamingText = getDisplayText(
+  const currentStreamingData = getDisplayText(
     {
       original_text: streamingOriginal,
       translated_text: streamingTranslated || undefined,
@@ -158,6 +198,8 @@ export default function SessionContent({ code }: SessionContentProps) {
     displayLanguage,
     session?.mode || 'one_way'
   );
+  const currentStreamingText = currentStreamingData.text;
+  const isCurrentStreamingTranslated = currentStreamingData.isTranslated;
 
   // Load participant info from sessionStorage
   useEffect(() => {
@@ -475,20 +517,25 @@ export default function SessionContent({ code }: SessionContentProps) {
           >
             <div className="space-y-4">
               {/* Final transcripts from database */}
-              {transcripts.map((t) => (
-                <div key={t.id} className="text-white animate-fadeIn">
-                  <span className="text-blue-400 font-medium">{t.participant_name}: </span>
-                  <span className="text-2xl">
-                    {getDisplayText(t, displayLanguage, session?.mode || 'one_way')}
-                  </span>
-                </div>
-              ))}
+              {transcripts.map((t) => {
+                const displayData = getDisplayText(t, displayLanguage, session?.mode || 'one_way');
+                const participantColor = getParticipantColor(t.participant_name);
+                return (
+                  <div key={t.id} className="text-white animate-fadeIn">
+                    <span className={`${participantColor} font-medium`}>
+                      {t.participant_name}
+                      {displayData.isTranslated && ' (Translated)'}:{' '}
+                    </span>
+                    <span className="text-2xl">{displayData.text}</span>
+                  </div>
+                );
+              })}
 
               {/* Streaming transcripts from other participants (via Supabase) */}
               {Array.from(streamingTranscripts.entries())
                 .filter(([id]) => id !== participantInfo?.participantId) // Don't show own streaming twice
                 .map(([id, data]) => {
-                  const displayText = getDisplayText(
+                  const displayData = getDisplayText(
                     {
                       original_text: data.text,
                       translated_text: data.translatedText,
@@ -498,10 +545,14 @@ export default function SessionContent({ code }: SessionContentProps) {
                     displayLanguage,
                     session?.mode || 'one_way'
                   );
+                  const participantColor = getParticipantColor(data.participantName);
                   return (
                     <div key={id} className="text-yellow-300 transition-opacity duration-150">
-                      <span className="text-yellow-400 font-medium">{data.participantName}: </span>
-                      <span className="text-2xl">{displayText}</span>
+                      <span className={`${participantColor} font-medium`}>
+                        {data.participantName}
+                        {displayData.isTranslated && ' (Translated)'}:{' '}
+                      </span>
+                      <span className="text-2xl">{displayData.text}</span>
                       <span className="inline-block w-2 h-6 bg-yellow-400 ml-1 animate-blink" />
                     </div>
                   );
@@ -510,7 +561,10 @@ export default function SessionContent({ code }: SessionContentProps) {
               {/* LOCAL streaming text - shows immediately while speaking */}
               {currentStreamingText && isRecording && (
                 <div className="text-yellow-300">
-                  <span className="text-yellow-400 font-medium">{participantInfo?.participantName}: </span>
+                  <span className={`${getParticipantColor(participantInfo?.participantName || '')} font-medium`}>
+                    {participantInfo?.participantName}
+                    {isCurrentStreamingTranslated && ' (Translated)'}:{' '}
+                  </span>
                   <span className="text-2xl">{currentStreamingText}</span>
                   <span className="inline-block w-2 h-6 bg-yellow-400 ml-1 animate-blink" />
                 </div>
