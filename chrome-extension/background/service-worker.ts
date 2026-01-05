@@ -106,18 +106,28 @@ addMessageListener((message, sender, sendResponse) => {
       return true;
 
     case MessageType.REQUEST_TAB_CAPTURE:
+      console.log('[ServiceWorker] Handling REQUEST_TAB_CAPTURE from tab:', sender.tab?.id);
+
       if (!sender.tab?.id) {
+        console.error('[ServiceWorker] No tab ID in sender');
         sendResponse({ error: 'No tab ID' });
         return;
       }
 
-      chrome.tabCapture.getMediaStreamId({ targetTabId: sender.tab.id }, (streamId) => {
-        if (chrome.runtime.lastError) {
-          sendResponse({ error: chrome.runtime.lastError.message });
-        } else {
-          sendResponse({ streamId });
-        }
-      });
+      try {
+        chrome.tabCapture.getMediaStreamId({ targetTabId: sender.tab.id }, (streamId) => {
+          if (chrome.runtime.lastError) {
+            console.error('[ServiceWorker] Tab capture error:', chrome.runtime.lastError);
+            sendResponse({ error: chrome.runtime.lastError.message });
+          } else {
+            console.log('[ServiceWorker] Tab capture stream ID obtained:', streamId);
+            sendResponse({ streamId });
+          }
+        });
+      } catch (error) {
+        console.error('[ServiceWorker] Tab capture exception:', error);
+        sendResponse({ error: (error as Error).message });
+      }
       return true;
 
     case MessageType.MEET_MIC_STATE_CHANGED:
@@ -175,6 +185,55 @@ addMessageListener((message, sender, sendResponse) => {
         });
       });
       break;
+
+    case MessageType.START_TRANSCRIPTION:
+      // Forward to active Meet tab
+      console.log('[ServiceWorker] Forwarding START_TRANSCRIPTION to Meet tab');
+      chrome.tabs.query({ url: 'https://meet.google.com/*' }, (tabs) => {
+        if (tabs.length === 0) {
+          console.error('[ServiceWorker] No Meet tabs found');
+          sendResponse({ success: false, error: 'No Google Meet tab found. Please open a Meet call first.' });
+          return;
+        }
+
+        const meetTab = tabs[0];
+        console.log('[ServiceWorker] Sending to Meet tab:', meetTab.id);
+
+        chrome.tabs.sendMessage(meetTab.id!, {
+          type: MessageType.START_TRANSCRIPTION,
+          payload: message.payload,
+        }).then(() => {
+          console.log('[ServiceWorker] START_TRANSCRIPTION sent to Meet tab');
+          sendResponse({ success: true });
+        }).catch((error) => {
+          console.error('[ServiceWorker] Failed to send to Meet tab:', error);
+          sendResponse({ success: false, error: error.message });
+        });
+      });
+      return true;
+
+    case MessageType.STOP_TRANSCRIPTION:
+      // Forward to active Meet tab
+      console.log('[ServiceWorker] Forwarding STOP_TRANSCRIPTION to Meet tab');
+      chrome.tabs.query({ url: 'https://meet.google.com/*' }, (tabs) => {
+        if (tabs.length === 0) {
+          console.error('[ServiceWorker] No Meet tabs found');
+          sendResponse({ success: false, error: 'No Google Meet tab found' });
+          return;
+        }
+
+        const meetTab = tabs[0];
+        chrome.tabs.sendMessage(meetTab.id!, {
+          type: MessageType.STOP_TRANSCRIPTION,
+        }).then(() => {
+          console.log('[ServiceWorker] STOP_TRANSCRIPTION sent to Meet tab');
+          sendResponse({ success: true });
+        }).catch((error) => {
+          console.error('[ServiceWorker] Failed to send to Meet tab:', error);
+          sendResponse({ success: false, error: error.message });
+        });
+      });
+      return true;
   }
 });
 

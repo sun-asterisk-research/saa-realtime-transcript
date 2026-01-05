@@ -74,7 +74,7 @@ export class CaptionInjector {
   private isCaptionElement(element: HTMLElement): boolean {
     // Check if this element is likely a caption container
     const text = element.textContent?.trim() || '';
-    const className = element.className;
+    const className = typeof element.className === 'string' ? element.className : element.className?.toString() || '';
     const role = element.getAttribute('role');
 
     // Skip if already hidden by us
@@ -98,8 +98,8 @@ export class CaptionInjector {
     }
 
     // Check for caption-related classes
-    if (className.toLowerCase().includes('caption') ||
-        className.toLowerCase().includes('subtitle')) {
+    if (className && (className.toLowerCase().includes('caption') ||
+        className.toLowerCase().includes('subtitle'))) {
       return true;
     }
 
