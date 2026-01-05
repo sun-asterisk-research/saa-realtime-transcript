@@ -58,6 +58,15 @@ class MeetContentScript {
         this.micMonitor.startMonitoring((isMuted) => {
           this.handleMicStateChange(isMuted);
         });
+
+        // Auto-start transcription if mic is unmuted
+        const initialMuted = this.micMonitor.isMuted;
+        if (!initialMuted) {
+          console.log('Mic is unmuted - auto-starting transcription');
+          setTimeout(() => {
+            this.startTranscription();
+          }, 1000); // Delay to ensure everything is ready
+        }
       } else {
         console.warn('Mic button not found - auto-sync disabled');
         this.autoSyncEnabled = false;
@@ -131,13 +140,22 @@ class MeetContentScript {
     console.log('Message listeners setup complete');
   }
 
-  private async startTranscription(options?: { contextIds?: string[] }): Promise<void> {
+  private async startTranscription(options?: { contextIds?: string[]; targetLanguage?: string }): Promise<void> {
     if (this.isTranscribing) {
       console.log('Already transcribing');
       return;
     }
 
     try {
+      // If no options provided, load from storage
+      if (!options) {
+        const state = await sendMessage({ type: MessageType.GET_STATE });
+        options = {
+          contextIds: state.transcription?.selectedContextIds || [],
+          targetLanguage: 'en', // Default to English for translation
+        };
+      }
+
       console.log('Starting transcription...', options);
 
       // Capture audio from Meet tab
@@ -166,12 +184,24 @@ class MeetContentScript {
           });
         },
         onTokensUpdate: (finalTokens: Token[], nonFinalTokens: Token[]) => {
-          // Filter translation tokens (if translation is enabled)
-          const allTokens = [...finalTokens, ...nonFinalTokens];
+          // If translation is enabled, only show translated tokens
+          const filterTranslatedTokens = (tokens: Token[]) => {
+            if (!options?.targetLanguage || options.targetLanguage === 'vi') {
+              // No translation or Vietnamese target - show all
+              return tokens;
+            }
 
-          // For now, show all tokens
-          // TODO: Filter by translation_status when translation is enabled
-          this.captionInjector.updateCaptions(allTokens);
+            // Filter only translated tokens
+            return tokens.filter(token => {
+              // Show token if it's translated, or if translation_status is not set yet
+              return !token.translation_status || token.translation_status === 'translated';
+            });
+          };
+
+          const filteredFinalTokens = filterTranslatedTokens(finalTokens);
+          const filteredNonFinalTokens = filterTranslatedTokens(nonFinalTokens);
+
+          this.captionInjector.updateCaptions([...filteredFinalTokens, ...filteredNonFinalTokens]);
         },
         onError: (error) => {
           console.error('Transcription error:', error);

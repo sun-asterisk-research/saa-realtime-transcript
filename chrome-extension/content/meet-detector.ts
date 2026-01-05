@@ -29,27 +29,43 @@ export class MeetDetector {
         subtree: true,
       });
 
-      // Timeout after 15 seconds
+      // Timeout after 60 seconds (user might be on lobby for a while)
       setTimeout(() => {
-        console.log('Meet UI load timeout');
+        console.log('Meet UI load timeout - user may still be in lobby');
         observer.disconnect();
         resolve();
-      }, 15000);
+      }, 60000);
     });
   }
 
   private isMeetUILoaded(): boolean {
-    // Check for Meet's main container elements
+    // Check for in-meeting UI elements (NOT lobby elements)
+    // These selectors should only match when user has joined the meeting
     const selectors = [
-      '[data-meeting-title]',
-      '[data-self-name]',
-      '[jsname="HfuNzb"]', // Meet's main controls container
-      'div[data-meeting-code]',
+      // Mic button with data-is-muted (only exists in meeting, not lobby)
+      '[role="button"][data-is-muted]',
+      '[data-is-muted="true"]',
+      '[data-is-muted="false"]',
+
+      // Meet's main controls container (bottom bar with controls)
+      '[jsname="HfuNzb"]',
+
+      // Meeting participants/people panel
+      '[data-participant-id]',
+
+      // Self video tile
+      '[data-self-name][data-initial-participant-id]',
     ];
 
     for (const selector of selectors) {
-      if (document.querySelector(selector)) {
-        return true;
+      try {
+        const element = document.querySelector(selector);
+        if (element) {
+          console.log('Found in-meeting UI element:', selector);
+          return true;
+        }
+      } catch (error) {
+        // Invalid selector, continue
       }
     }
 
@@ -59,28 +75,44 @@ export class MeetDetector {
 
 export class MicButtonMonitor {
   private micButton: HTMLElement | null = null;
-  private isMuted: boolean = false;
+  private _isMuted: boolean = false;
   private observer: MutationObserver | null = null;
   private onChange: ((isMuted: boolean) => void) | null = null;
+  private domObserver: MutationObserver | null = null;
+  private isMonitoring: boolean = false;
+  private restartTimeout: NodeJS.Timeout | null = null;
+
+  // Public getter for mute state
+  get isMuted(): boolean {
+    return this._isMuted;
+  }
 
   // Multiple selectors to find mic button (Meet changes these frequently)
   private readonly MIC_BUTTON_SELECTORS = [
+    // Most specific - Meet's jsname identifier
+    '[jsname="hw0c9"]',
+
+    // By data-is-muted attribute (works for both button and div)
+    '[role="button"][data-is-muted]',
+    '[data-is-muted]',
+
     // By data-tooltip
     '[data-tooltip*="microphone" i]',
     '[data-tooltip*="mic" i]',
 
     // By aria-label
-    '[aria-label*="microphone" i]',
-    '[aria-label*="turn on microphone" i]',
     '[aria-label*="turn off microphone" i]',
+    '[aria-label*="turn on microphone" i]',
+    '[aria-label*="microphone" i]',
     '[aria-label*="mute" i]',
 
-    // By jsname/jscontroller (Meet's internal IDs)
-    'button[jsname][data-is-muted]',
-    'div[jscontroller] button[aria-label*="mic" i]',
+    // By jsname/jscontroller (Meet's internal IDs) - support both button and div
+    '[jsname][data-is-muted]',
+    'div[jscontroller] [role="button"][aria-label*="mic" i]',
 
     // By class patterns (less reliable, but fallback)
-    'button[class*="mic" i][class*="button" i]',
+    '[role="button"][class*="mic" i]',
+    'button[class*="mic" i]',
   ];
 
   async findMicButton(): Promise<HTMLElement | null> {
@@ -150,18 +182,26 @@ export class MicButtonMonitor {
     }
 
     this.onChange = onChange;
+    this.isMonitoring = true;
 
     // Check initial state
-    this.isMuted = this.checkMutedState();
-    console.log('Initial mic state:', this.isMuted ? 'MUTED' : 'UNMUTED');
+    this._isMuted = this.checkMutedState();
+    console.log('Initial mic state:', this._isMuted ? 'MUTED' : 'UNMUTED');
 
     // Watch for attribute changes on the button
     this.observer = new MutationObserver(() => {
+      // Check if button is still in DOM
+      if (!this.isMicButtonValid()) {
+        console.warn('Mic button removed from DOM, attempting to re-find...');
+        this.restartMonitoring();
+        return;
+      }
+
       const newMuted = this.checkMutedState();
-      if (newMuted !== this.isMuted) {
-        this.isMuted = newMuted;
-        console.log('Mic state changed:', this.isMuted ? 'MUTED' : 'UNMUTED');
-        this.onChange?.(this.isMuted);
+      if (newMuted !== this._isMuted) {
+        this._isMuted = newMuted;
+        console.log('Mic state changed:', this._isMuted ? 'MUTED' : 'UNMUTED');
+        this.onChange?.(this._isMuted);
       }
     });
 
@@ -182,14 +222,82 @@ export class MicButtonMonitor {
       });
     }
 
+    // Watch for DOM changes (button being replaced when transitioning lobby -> meeting)
+    this.startDomObserver();
+
     console.log('Mic button monitoring started');
   }
 
   stopMonitoring(): void {
     this.observer?.disconnect();
     this.observer = null;
+    this.domObserver?.disconnect();
+    this.domObserver = null;
+    if (this.restartTimeout) {
+      clearTimeout(this.restartTimeout);
+      this.restartTimeout = null;
+    }
     this.onChange = null;
+    this.isMonitoring = false;
     console.log('Mic button monitoring stopped');
+  }
+
+  private isMicButtonValid(): boolean {
+    if (!this.micButton) return false;
+    // Check if button is still in the document
+    return document.body.contains(this.micButton);
+  }
+
+  private async restartMonitoring(): Promise<void> {
+    if (!this.isMonitoring) return;
+
+    // Debounce: clear any pending restart
+    if (this.restartTimeout) {
+      clearTimeout(this.restartTimeout);
+    }
+
+    // Wait 500ms before attempting restart (avoid rapid re-attempts during DOM changes)
+    this.restartTimeout = setTimeout(async () => {
+      console.log('Restarting mic button monitoring...');
+
+      // Stop current monitoring
+      this.observer?.disconnect();
+      this.observer = null;
+
+      // Try to find the mic button again
+      const newButton = await this.findMicButton();
+
+      if (newButton && this.onChange) {
+        console.log('Successfully re-found mic button, restarting monitoring');
+        this.startMonitoring(this.onChange);
+      } else {
+        console.warn('Failed to re-find mic button, will retry on next DOM change');
+      }
+
+      this.restartTimeout = null;
+    }, 500);
+  }
+
+  private startDomObserver(): void {
+    // Stop existing observer if any
+    this.domObserver?.disconnect();
+
+    // Watch for DOM changes that might indicate button replacement
+    this.domObserver = new MutationObserver((mutations) => {
+      // Debounce: only check every few mutations
+      if (!this.isMicButtonValid() && this.isMonitoring) {
+        console.log('DOM changed and mic button is invalid, attempting to re-find...');
+        this.restartMonitoring();
+      }
+    });
+
+    // Observe the entire document for changes
+    this.domObserver.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
+
+    console.log('DOM observer started for mic button changes');
   }
 
   private checkMutedState(): boolean {

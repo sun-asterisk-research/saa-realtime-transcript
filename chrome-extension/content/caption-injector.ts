@@ -234,14 +234,60 @@ export class CaptionInjector {
     const finalTokens = filteredTokens.filter((t) => t.is_final);
     const nonFinalTokens = filteredTokens.filter((t) => !t.is_final);
 
-    // Show last 20 final tokens + all non-final
-    const recentFinalText = finalTokens.slice(-20).map((t) => t.text).join('');
-    const nonFinalText = nonFinalTokens.map((t) => t.text).join('');
+    // Group tokens by speaker
+    const groupBySpeaker = (tokens: Token[]) => {
+      const groups: { speaker: number | undefined; text: string; isFinal: boolean }[] = [];
+      let currentSpeaker: number | undefined = undefined;
+      let currentText = '';
+      let currentIsFinal = false;
 
-    this.captionContainer!.innerHTML = `
-      <span style="opacity: 0.9;">${this.escapeHtml(recentFinalText)}</span>
-      <span style="color: #4CAF50; font-weight: 600;">${this.escapeHtml(nonFinalText)}</span>
-    `;
+      for (const token of tokens) {
+        if (token.speaker !== currentSpeaker && currentText) {
+          // Speaker changed, save previous group
+          groups.push({ speaker: currentSpeaker, text: currentText, isFinal: currentIsFinal });
+          currentText = '';
+        }
+        currentSpeaker = token.speaker;
+        currentText += token.text;
+        currentIsFinal = token.is_final;
+      }
+
+      if (currentText) {
+        groups.push({ speaker: currentSpeaker, text: currentText, isFinal: currentIsFinal });
+      }
+
+      return groups;
+    };
+
+    // Show last 3 speaker groups from final tokens
+    const finalGroups = groupBySpeaker(finalTokens).slice(-3);
+    const nonFinalGroups = groupBySpeaker(nonFinalTokens);
+
+    let html = '';
+
+    // Render final speaker groups
+    for (const group of finalGroups) {
+      const speakerLabel = group.speaker !== undefined ? `Speaker ${group.speaker + 1}` : '';
+      html += `
+        <div style="margin-bottom: 8px;">
+          ${speakerLabel ? `<span style="color: #FFA726; font-weight: 700; margin-right: 8px;">${speakerLabel}:</span>` : ''}
+          <span style="opacity: 0.9;">${this.escapeHtml(group.text)}</span>
+        </div>
+      `;
+    }
+
+    // Render non-final speaker groups
+    for (const group of nonFinalGroups) {
+      const speakerLabel = group.speaker !== undefined ? `Speaker ${group.speaker + 1}` : '';
+      html += `
+        <div style="margin-bottom: 8px;">
+          ${speakerLabel ? `<span style="color: #FFA726; font-weight: 700; margin-right: 8px;">${speakerLabel}:</span>` : ''}
+          <span style="color: #4CAF50; font-weight: 600;">${this.escapeHtml(group.text)}</span>
+        </div>
+      `;
+    }
+
+    this.captionContainer!.innerHTML = html;
   }
 
   clearCaptions(): void {

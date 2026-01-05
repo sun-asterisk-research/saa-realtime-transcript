@@ -230,16 +230,12 @@ function Popup() {
         </select>
       </section>
 
-      <section className="controls">
-        {isActiveState(transcriptionState) ? (
-          <button onClick={handleStopTranscription} className="btn-stop">
-            Stop Transcription
-          </button>
-        ) : (
-          <button onClick={handleStartTranscription} className="btn-start">
-            Start Transcription
-          </button>
-        )}
+      <section className="auto-sync-info">
+        <p style={{ fontSize: '14px', color: '#666', textAlign: 'center', margin: '16px 0' }}>
+          Transcription automatically syncs with your microphone.
+          <br />
+          <strong>Unmute</strong> to start, <strong>Mute</strong> to stop.
+        </p>
       </section>
     </div>
   );
