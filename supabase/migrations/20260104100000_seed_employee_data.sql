@@ -5,7 +5,21 @@
 -- Description: Seed Sun Asterisk employee data for autocomplete
 -- Source: Adapted from /Users/pham.van.toan/Project/saa-vn seed data
 -- Note: Profiles will be auto-created by the handle_new_user() trigger
+-- WARNING: This should ONLY run on local dev, NOT on production
 -- ============================================================================
+
+-- SKIP this migration on production to avoid conflicts with real OAuth users
+-- Only seed data if database is empty (no real users yet)
+DO $$
+BEGIN
+  -- Check if this is a fresh database (no real OAuth users)
+  -- Real OAuth users will NOT have instance_id = '00000000-0000-0000-0000-000000000000'
+  IF NOT EXISTS (
+    SELECT 1 FROM auth.users
+    WHERE instance_id != '00000000-0000-0000-0000-000000000000'
+    LIMIT 1
+  ) THEN
+    RAISE NOTICE 'No real users found - proceeding with seed data';
 
 -- Insert Sun Asterisk employees into auth.users
 -- Password hash is a development-only hash for "password123"
@@ -62,5 +76,10 @@ INSERT INTO auth.users (
 ('00000000-0000-0000-0000-000000000000', '469f77ef-62ca-4487-9bbb-ed5cff5283e7', 'authenticated', 'authenticated', 'nguyen.van.huong@sun-asterisk.com', '$2a$10$vT6YhJC7tLk/gT.9MxjN5OjqWHLyMqZB7dVHZqZ0Z5TJxMqXqr8K2', NOW(), '{"provider":"email","providers":["email"]}', '{"full_name":"Nguyễn Văn Hưởng","avatar_url":"https://api.dicebear.com/7.x/avataaars/svg?seed=nguyen-van-huong"}', NOW(), NOW(), false)
 ON CONFLICT (id) DO NOTHING;
 
--- Note: Profiles will be auto-created by the handle_new_user() trigger
--- created in the previous migration (20260104000000_add_access_control.sql)
+    -- Note: Profiles will be auto-created by the handle_new_user() trigger
+    -- created in the previous migration (20260104000000_add_access_control.sql)
+
+  ELSE
+    RAISE NOTICE 'Real users detected - SKIPPING seed data to avoid conflicts with production OAuth users';
+  END IF;
+END $$;
