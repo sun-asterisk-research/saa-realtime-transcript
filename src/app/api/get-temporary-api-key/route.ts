@@ -1,11 +1,26 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 
+// CORS headers for Chrome extension
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+// Handle OPTIONS preflight request
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers: corsHeaders });
+}
+
 // You don't want to expose the API key to the client, so we generate a temporary one.
 // Temporary API keys are then used to initialize the SonioxClient instance on the client.
 export async function POST(request: Request) {
   if (!process.env.SONIOX_API_KEY) {
-    return NextResponse.json({ error: 'SONIOX_API_KEY is not set' }, { status: 400 });
+    return NextResponse.json({ error: 'SONIOX_API_KEY is not set' }, {
+      status: 400,
+      headers: corsHeaders,
+    });
   }
 
   // Check for Bearer token authentication (for extension)
@@ -18,7 +33,10 @@ export async function POST(request: Request) {
     const { data: { user }, error } = await supabase.auth.getUser(token);
 
     if (error || !user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+      return NextResponse.json({ error: 'Invalid token' }, {
+        status: 401,
+        headers: corsHeaders,
+      });
     }
 
     // Token is valid, proceed to generate temporary API key
@@ -42,5 +60,7 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     apiKey: data.api_key,
+  }, {
+    headers: corsHeaders,
   });
 }

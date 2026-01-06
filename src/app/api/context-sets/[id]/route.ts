@@ -2,6 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin-client';
 import type { ContextSetFormData, ContextSetWithDetails } from '@/lib/supabase/types';
 
+// CORS headers for Chrome extension
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, PATCH, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+// Handle OPTIONS preflight request
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers: corsHeaders });
+}
+
 // GET /api/context-sets/[id] - Get single context set with full details
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -37,10 +49,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       translation_term_count: data.translation_terms?.length || 0,
     };
 
-    return NextResponse.json({ contextSet });
+    return NextResponse.json({ contextSet }, {
+      headers: corsHeaders,
+    });
   } catch (error) {
     console.error('Error in GET /api/context-sets/[id]:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error' }, {
+      status: 500,
+      headers: corsHeaders,
+    });
   }
 }
 

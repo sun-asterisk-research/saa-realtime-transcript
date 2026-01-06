@@ -1,16 +1,55 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin-client';
+import { createServerClient } from '@/lib/supabase/server';
 import type { ContextSet, ContextSetFormData, ContextSetWithDetails } from '@/lib/supabase/types';
+
+// CORS headers for Chrome extension
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+// Handle OPTIONS preflight request
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers: corsHeaders });
+}
 
 // GET /api/context-sets - List context sets (user's + public)
 export async function GET(request: NextRequest) {
   try {
+    let userId: string | null = null;
+
+    // Check for Bearer token authentication (for extension)
+    const authHeader = request.headers.get('Authorization');
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.replace('Bearer ', '');
+
+      // Validate token with Supabase
+      const supabase = await createServerClient();
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+
+      if (error || !user) {
+        return NextResponse.json({ error: 'Invalid token' }, {
+          status: 401,
+          headers: corsHeaders,
+        });
+      }
+
+      userId = user.id;
+    }
+    // If no Bearer token, check for session cookie (web app request)
+    else {
+      const supabase = await createServerClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      userId = user?.id || null;
+    }
+
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search') || '';
     const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);
     const offset = parseInt(searchParams.get('offset') || '0');
     const publicOnly = searchParams.get('publicOnly') === 'true';
-    const userId = searchParams.get('userId'); // For filtering user's contexts
 
     const supabase = getAdminClient();
 
@@ -64,10 +103,15 @@ export async function GET(request: NextRequest) {
       total: count || 0,
       limit,
       offset,
+    }, {
+      headers: corsHeaders,
     });
   } catch (error) {
     console.error('Error in GET /api/context-sets:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error' }, {
+      status: 500,
+      headers: corsHeaders,
+    });
   }
 }
 

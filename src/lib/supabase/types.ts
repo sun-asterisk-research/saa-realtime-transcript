@@ -273,3 +273,53 @@ export const LANGUAGE_PAIRS = {
     { label: 'Japanese ↔ English', a: 'ja', b: 'en' },
   ],
 } as const;
+
+// Meet Session Types (for Chrome Extension collaboration)
+export type MeetSessionStatus = 'active' | 'ended';
+
+export interface MeetSession {
+  id: string;
+  meeting_code: string; // Google Meet room code (e.g., arf-qqwo-oyx)
+  created_at: string;
+  ended_at: string | null;
+  status: MeetSessionStatus;
+  total_participants: number;
+  total_transcripts: number;
+}
+
+export interface MeetSessionParticipant {
+  id: string;
+  session_id: string;
+  user_id: string;
+  display_name: string; // Name shown in Google Meet
+  email: string | null;
+  joined_at: string;
+  left_at: string | null;
+  is_active: boolean;
+}
+
+export interface MeetTranscript {
+  id: string;
+  session_id: string;
+  participant_id: string;
+  text: string;
+  translated_text: string | null;
+  is_final: boolean;
+  start_time: string;
+  end_time: string | null;
+  created_at: string;
+}
+
+// API Response types for Meet sessions
+export interface JoinMeetSessionResponse {
+  session: MeetSession;
+  participant: MeetSessionParticipant;
+}
+
+export interface MeetSessionWithParticipants extends MeetSession {
+  participants: MeetSessionParticipant[];
+}
+
+export interface MeetTranscriptWithParticipant extends MeetTranscript {
+  participant: MeetSessionParticipant;
+}
