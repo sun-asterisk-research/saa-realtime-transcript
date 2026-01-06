@@ -203,7 +203,9 @@ export class CaptionInjector {
       bottom: 100px;
       left: 50%;
       transform: translateX(-50%);
-      max-width: 80%;
+      width: 80%;
+      max-width: 1200px;
+      height: 200px;
       background: rgba(0, 0, 0, 0.8);
       color: white;
       padding: 16px 24px;
@@ -215,7 +217,32 @@ export class CaptionInjector {
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
       font-family: 'Google Sans', Roboto, Arial, sans-serif;
       pointer-events: none;
+      overflow-y: auto;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
     `;
+
+    // Add scrollbar styling
+    const style = document.createElement('style');
+    style.textContent = `
+      #soniox-captions::-webkit-scrollbar {
+        width: 8px;
+      }
+      #soniox-captions::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+      }
+      #soniox-captions::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.3);
+        border-radius: 4px;
+      }
+      #soniox-captions::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.5);
+      }
+    `;
+    document.head.appendChild(style);
 
     document.body.appendChild(container);
     this.captionContainer = container;
@@ -223,12 +250,16 @@ export class CaptionInjector {
   }
 
   updateCaptions(tokens: Token[]): void {
+    console.log('[CaptionInjector] updateCaptions called with', tokens.length, 'tokens');
+
     if (!this.captionContainer) {
       this.createCaptionContainer();
+      console.log('[CaptionInjector] Created caption container');
     }
 
     // Filter out endpoint tokens
     const filteredTokens = tokens.filter((t) => t.text !== '<end>');
+    console.log('[CaptionInjector] After filtering <end>:', filteredTokens.length, 'tokens');
 
     // Separate final and non-final tokens
     const finalTokens = filteredTokens.filter((t) => t.is_final);
@@ -265,29 +296,42 @@ export class CaptionInjector {
 
     let html = '';
 
+    // For Phase 1: Individual mic capture
+    // Each person only transcribes their own speech, so no speaker label needed
+    // The speaker name is shown on the server-side aggregated view
+
     // Render final speaker groups
+    // If translation enabled: final tokens can be either original (yellow) or translated (white)
+    // We'll use white for final tokens (since they're either English or waiting-to-be-translated Vietnamese)
     for (const group of finalGroups) {
-      const speakerLabel = group.speaker !== undefined ? `Speaker ${group.speaker + 1}` : '';
       html += `
         <div style="margin-bottom: 8px;">
-          ${speakerLabel ? `<span style="color: #FFA726; font-weight: 700; margin-right: 8px;">${speakerLabel}:</span>` : ''}
-          <span style="opacity: 0.9;">${this.escapeHtml(group.text)}</span>
+          <span style="color: #FFA726; font-weight: 600; opacity: 0.95;">${this.escapeHtml(group.text)}</span>
         </div>
       `;
     }
 
-    // Render non-final speaker groups
+    // Render non-final speaker groups (still speaking - show in green)
     for (const group of nonFinalGroups) {
-      const speakerLabel = group.speaker !== undefined ? `Speaker ${group.speaker + 1}` : '';
       html += `
         <div style="margin-bottom: 8px;">
-          ${speakerLabel ? `<span style="color: #FFA726; font-weight: 700; margin-right: 8px;">${speakerLabel}:</span>` : ''}
           <span style="color: #4CAF50; font-weight: 600;">${this.escapeHtml(group.text)}</span>
         </div>
       `;
     }
 
+    console.log('[CaptionInjector] Setting HTML:', {
+      htmlLength: html.length,
+      finalGroups: finalGroups.length,
+      nonFinalGroups: nonFinalGroups.length,
+    });
+
     this.captionContainer!.innerHTML = html;
+
+    // Auto-scroll to bottom when new content is added
+    if (this.captionContainer) {
+      this.captionContainer.scrollTop = this.captionContainer.scrollHeight;
+    }
   }
 
   clearCaptions(): void {

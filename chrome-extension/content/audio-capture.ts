@@ -7,40 +7,26 @@ export class MeetAudioCapture {
   private audioStream: MediaStream | null = null;
 
   async captureTabAudio(): Promise<MediaStream> {
-    console.log('[AudioCapture] Requesting tab capture stream ID...');
+    console.log('[AudioCapture] Starting microphone capture...');
 
-    // Request tab capture from service worker
-    const response = await sendMessage({ type: MessageType.REQUEST_TAB_CAPTURE });
-
-    if (response.error || !response.streamId) {
-      console.error('[AudioCapture] Failed to get stream ID:', response.error);
-      throw new Error(`Failed to get stream ID: ${response.error || 'Unknown error'}`);
-    }
-
-    console.log('[AudioCapture] Got stream ID:', response.streamId);
-
-    // Use stream ID to capture audio
-    // Note: Chrome Manifest V3 uses different constraints format
+    // For Google Meet, we can capture the user's microphone instead of tab audio
+    // This is simpler and doesn't require complex tab capture permissions
+    // Since the user is speaking into their mic, this captures their audio
     try {
-      console.log('[AudioCapture] Calling getUserMedia with stream ID...');
-
-      // Try new format first (Manifest V3)
-      const constraints: any = {
+      const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          chromeMediaSource: 'tab',
-          chromeMediaSourceId: response.streamId,
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
         },
-      };
+      });
 
-      console.log('[AudioCapture] Constraints:', JSON.stringify(constraints));
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-
-      console.log('[AudioCapture] Audio stream captured successfully');
+      console.log('[AudioCapture] Microphone stream captured successfully');
       this.audioStream = stream;
       return stream;
     } catch (error) {
       console.error('[AudioCapture] getUserMedia failed:', error);
-      throw new Error(`Error starting tab capture: ${(error as Error).message}`);
+      throw new Error(`Failed to capture microphone: ${(error as Error).message}`);
     }
   }
 

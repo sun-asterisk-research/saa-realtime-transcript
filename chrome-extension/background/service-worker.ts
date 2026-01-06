@@ -114,20 +114,38 @@ addMessageListener((message, sender, sendResponse) => {
         return;
       }
 
-      try {
-        chrome.tabCapture.getMediaStreamId({ targetTabId: sender.tab.id }, (streamId) => {
+      // Use chrome.tabCapture.capture() instead of getMediaStreamId()
+      // This works better with Manifest V3
+      chrome.tabCapture.capture(
+        {
+          audio: true,
+          video: false,
+        },
+        (stream) => {
           if (chrome.runtime.lastError) {
-            console.error('[ServiceWorker] Tab capture error:', chrome.runtime.lastError);
+            console.error('[ServiceWorker] Tab capture error:', chrome.runtime.lastError.message);
             sendResponse({ error: chrome.runtime.lastError.message });
+          } else if (!stream) {
+            console.error('[ServiceWorker] No stream returned');
+            sendResponse({ error: 'No stream returned from tabCapture' });
           } else {
-            console.log('[ServiceWorker] Tab capture stream ID obtained:', streamId);
-            sendResponse({ streamId });
+            console.log('[ServiceWorker] Tab capture successful, stream tracks:', stream.getTracks().length);
+            // Note: We can't pass MediaStream directly via message passing
+            // We need a different approach - use chrome.tabCapture.getMediaStreamId() with proper permissions
+
+            // Get stream ID from the stream
+            const audioTrack = stream.getAudioTracks()[0];
+            if (!audioTrack) {
+              sendResponse({ error: 'No audio track in stream' });
+              return;
+            }
+
+            console.log('[ServiceWorker] Audio track ID:', audioTrack.id);
+            // Return success - content script will need to use offscreen document or different approach
+            sendResponse({ success: true, trackId: audioTrack.id });
           }
-        });
-      } catch (error) {
-        console.error('[ServiceWorker] Tab capture exception:', error);
-        sendResponse({ error: (error as Error).message });
-      }
+        }
+      );
       return true;
 
     case MessageType.MEET_MIC_STATE_CHANGED:

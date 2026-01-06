@@ -2,6 +2,7 @@ import { MeetDetector, MicButtonMonitor } from './meet-detector';
 import { CaptionInjector } from './caption-injector';
 import { MeetAudioCapture } from './audio-capture';
 import { SonioxWrapper } from '../lib/soniox-wrapper';
+import { SessionManager } from '../lib/session-manager';
 import { MessageType, addMessageListener, sendMessage } from '../shared/messaging';
 import { AUTH_CALLBACK_PATH } from '../shared/constants';
 import { fetchAndMergeContexts } from '../lib/context-utils';
@@ -15,9 +16,12 @@ class MeetContentScript {
   private captionInjector: CaptionInjector;
   private audioCapture: MeetAudioCapture;
   private sonioxWrapper: SonioxWrapper;
+  private sessionManager: SessionManager;
   private autoSyncEnabled: boolean = true;
   private isTranscribing: boolean = false;
   private initialized: boolean = false;
+  private meetingCode: string | null = null;
+  private currentTranscriptStartTime: Date | null = null;
 
   constructor() {
     this.detector = new MeetDetector();
@@ -25,6 +29,7 @@ class MeetContentScript {
     this.captionInjector = new CaptionInjector();
     this.audioCapture = new MeetAudioCapture();
     this.sonioxWrapper = new SonioxWrapper();
+    this.sessionManager = new SessionManager();
   }
 
   async initialize(): Promise<void> {
@@ -74,6 +79,33 @@ class MeetContentScript {
 
       // Hide native captions
       this.captionInjector.hideNativeCaptions();
+
+      // Detect meeting code and join session
+      this.meetingCode = this.detector.getMeetingCode();
+      if (this.meetingCode) {
+        console.log('Detected meeting code:', this.meetingCode);
+
+        const userInfo = this.detector.getCurrentUserInfo();
+        if (userInfo) {
+          console.log('Detected user info:', userInfo);
+
+          try {
+            await this.sessionManager.joinSession(
+              this.meetingCode,
+              userInfo.displayName,
+              userInfo.email
+            );
+            console.log('Successfully joined Meet session');
+          } catch (error) {
+            console.error('Failed to join Meet session:', error);
+            // Continue anyway - transcription still works locally
+          }
+        } else {
+          console.warn('Could not detect user info - session sync disabled');
+        }
+      } else {
+        console.warn('Could not detect meeting code - session sync disabled');
+      }
 
       // Setup message listeners
       this.setupMessageListeners();
@@ -158,6 +190,9 @@ class MeetContentScript {
 
       console.log('Starting transcription...', options);
 
+      // Initialize transcript start time
+      this.currentTranscriptStartTime = new Date();
+
       // Capture audio from Meet tab
       const audioStream = await this.audioCapture.captureTabAudio();
       console.log('Audio stream captured');
@@ -184,24 +219,118 @@ class MeetContentScript {
           });
         },
         onTokensUpdate: (finalTokens: Token[], nonFinalTokens: Token[]) => {
-          // If translation is enabled, only show translated tokens
-          const filterTranslatedTokens = (tokens: Token[]) => {
-            if (!options?.targetLanguage || options.targetLanguage === 'vi') {
-              // No translation or Vietnamese target - show all
-              return tokens;
+          console.log('[TokensUpdate] Received:', {
+            finalCount: finalTokens.length,
+            nonFinalCount: nonFinalTokens.length,
+            targetLanguage: options?.targetLanguage,
+          });
+
+          // Translation display logic:
+          // - Non-final tokens: ALWAYS show original (Vietnamese) - màu xanh lá
+          // - Final tokens: Show translated (English) if available, otherwise show original (Vietnamese) - màu vàng
+
+          let displayFinalTokens: Token[];
+          let displayNonFinalTokens: Token[];
+
+          if (!options?.targetLanguage || options.targetLanguage === 'vi') {
+            // No translation - show all tokens as-is
+            console.log('[TokensUpdate] No translation enabled, showing all tokens');
+            displayFinalTokens = finalTokens;
+            displayNonFinalTokens = nonFinalTokens;
+          } else {
+            // Translation enabled (Vietnamese → English)
+            // Follow web app logic:
+            // - transcriptionTokens: translation_status !== 'translation' (Vietnamese original)
+            // - translationTokens: translation_status === 'translation' (English translation)
+
+            // FINAL: Show ONLY English translation (like web app)
+            const translatedFinalTokens = finalTokens.filter(token => {
+              return token.translation_status === 'translation';
+            });
+
+            const originalFinalTokens = finalTokens.filter(token => {
+              return token.translation_status !== 'translation';
+            });
+
+            // Prefer translated (English), fallback to original (Vietnamese) if translation not ready yet
+            if (translatedFinalTokens.length > 0) {
+              displayFinalTokens = translatedFinalTokens;
+              console.log('[TokensUpdate] Showing translated tokens (English):', translatedFinalTokens.length);
+            } else if (originalFinalTokens.length > 0) {
+              displayFinalTokens = originalFinalTokens;
+              console.log('[TokensUpdate] No translations yet, showing original tokens (Vietnamese):', originalFinalTokens.length);
+            } else {
+              displayFinalTokens = [];
+              console.log('[TokensUpdate] No final tokens to display');
             }
 
-            // Filter only translated tokens
-            return tokens.filter(token => {
-              // Show token if it's translated, or if translation_status is not set yet
-              return !token.translation_status || token.translation_status === 'translated';
+            // NON-FINAL: Show ONLY Vietnamese original (while speaking)
+            const originalNonFinalTokens = nonFinalTokens.filter(token => {
+              return token.translation_status !== 'translation';
             });
-          };
 
-          const filteredFinalTokens = filterTranslatedTokens(finalTokens);
-          const filteredNonFinalTokens = filterTranslatedTokens(nonFinalTokens);
+            displayNonFinalTokens = originalNonFinalTokens;
+            console.log('[TokensUpdate] Showing non-final original tokens (Vietnamese):', originalNonFinalTokens.length);
 
+            console.log('[TokensUpdate] Token breakdown:', {
+              totalFinal: finalTokens.length,
+              translatedFinal: translatedFinalTokens.length,
+              originalFinal: originalFinalTokens.length,
+              displayingFinal: displayFinalTokens.length,
+              totalNonFinal: nonFinalTokens.length,
+              originalNonFinal: originalNonFinalTokens.length,
+              displayingNonFinal: displayNonFinalTokens.length,
+            });
+          }
+
+          const filteredFinalTokens = displayFinalTokens;
+          const filteredNonFinalTokens = displayNonFinalTokens;
+
+          console.log('[TokensUpdate] Updating captions with:', {
+            finalTokens: filteredFinalTokens.length,
+            nonFinalTokens: filteredNonFinalTokens.length,
+            sampleTokens: [...filteredFinalTokens, ...filteredNonFinalTokens].slice(0, 3),
+          });
+
+          // Update local captions
           this.captionInjector.updateCaptions([...filteredFinalTokens, ...filteredNonFinalTokens]);
+
+          // Upload final transcripts to session
+          if (this.sessionManager.isInSession() && filteredFinalTokens.length > 0) {
+            // Extract original text
+            const originalText = finalTokens
+              .filter(t => !t.translation_status || t.translation_status !== 'translated')
+              .map(t => t.text)
+              .join('');
+
+            // Extract translated text (only translated tokens)
+            const translatedText = finalTokens
+              .filter(t => t.translation_status === 'translated')
+              .map(t => t.text)
+              .join('');
+
+            // Set start time if not set
+            if (!this.currentTranscriptStartTime) {
+              this.currentTranscriptStartTime = new Date();
+            }
+
+            // Upload to session
+            this.sessionManager.queueTranscript(
+              originalText || filteredFinalTokens.map(t => t.text).join(''),
+              translatedText || undefined,
+              true, // is_final
+              this.currentTranscriptStartTime,
+              new Date() // end time
+            );
+
+            console.log('[SessionManager] Queued transcript:', {
+              originalLength: originalText.length,
+              translatedLength: translatedText.length,
+            });
+
+            // Reset start time for next segment
+            this.currentTranscriptStartTime = new Date();
+          }
         },
         onError: (error) => {
           console.error('Transcription error:', error);
@@ -236,11 +365,28 @@ class MeetContentScript {
       this.sonioxWrapper.stop();
       this.audioCapture.stopCapture();
       this.captionInjector.clearCaptions();
+      this.currentTranscriptStartTime = null; // Reset start time
       this.isTranscribing = false;
       console.log('Transcription stopped');
     } catch (error) {
       console.error('Failed to stop transcription:', error);
     }
+  }
+
+  private async cleanup(): Promise<void> {
+    console.log('Cleaning up extension...');
+
+    // Stop transcription if active
+    if (this.isTranscribing) {
+      this.stopTranscription();
+    }
+
+    // Leave session (will flush remaining transcripts)
+    if (this.sessionManager.isInSession()) {
+      await this.sessionManager.leaveSession();
+    }
+
+    console.log('Cleanup complete');
   }
 
   private handleAuthCallback(): void {
@@ -301,3 +447,9 @@ console.log('[ContentScript] postMessage listener setup complete');
 // Initialize content script
 const meetScript = new MeetContentScript();
 meetScript.initialize();
+
+// Cleanup on page unload (user leaves meeting or closes tab)
+window.addEventListener('beforeunload', () => {
+  console.log('[ContentScript] Page unloading, cleaning up...');
+  meetScript['cleanup'](); // Call private cleanup method
+});

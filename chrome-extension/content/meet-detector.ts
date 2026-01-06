@@ -5,6 +5,95 @@ export class MeetDetector {
     return window.location.hostname === 'meet.google.com' && window.location.pathname.length > 1;
   }
 
+  getMeetingCode(): string | null {
+    // Method 1: From URL (e.g., https://meet.google.com/arf-qqwo-oyx)
+    const urlMatch = window.location.pathname.match(/^\/([a-z]{3}-[a-z]{4}-[a-z]{3})$/);
+    if (urlMatch) {
+      console.log('[MeetDetector] Meeting code from URL:', urlMatch[1]);
+      return urlMatch[1];
+    }
+
+    // Method 2: From DOM
+    const codeElement = document.querySelector('[data-meeting-code]');
+    if (codeElement) {
+      const code = codeElement.getAttribute('data-meeting-code');
+      if (code && /^[a-z]{3}-[a-z]{4}-[a-z]{3}$/.test(code)) {
+        console.log('[MeetDetector] Meeting code from DOM:', code);
+        return code;
+      }
+    }
+
+    // Method 3: From meeting info text
+    const selectors = [
+      '[jsname="r4nke"]', // Meet's code display
+      'div[data-unresolved-meeting-id]',
+      '[data-meeting-title]',
+    ];
+
+    for (const selector of selectors) {
+      try {
+        const element = document.querySelector(selector);
+        if (element?.textContent) {
+          const text = element.textContent.trim();
+          const match = text.match(/([a-z]{3}-[a-z]{4}-[a-z]{3})/);
+          if (match) {
+            console.log('[MeetDetector] Meeting code from selector', selector, ':', match[1]);
+            return match[1];
+          }
+        }
+      } catch (error) {
+        // Selector might be invalid
+      }
+    }
+
+    console.warn('[MeetDetector] Meeting code not found');
+    return null;
+  }
+
+  getCurrentUserInfo(): { displayName: string; email?: string } | null {
+    // Method 1: From header user menu
+    const headerButton = document.querySelector('[aria-label*="Account" i]');
+    if (headerButton) {
+      const ariaLabel = headerButton.getAttribute('aria-label') || '';
+      const nameMatch = ariaLabel.match(/Google Account: (.*?) \(/);
+      const emailMatch = ariaLabel.match(/\(([^)]+@[^)]+)\)/);
+
+      if (nameMatch || emailMatch) {
+        const displayName = nameMatch?.[1] || emailMatch?.[1] || 'Unknown';
+        const email = emailMatch?.[1];
+
+        console.log('[MeetDetector] User info from header:', { displayName, email });
+        return { displayName, email };
+      }
+    }
+
+    // Method 2: From self video tile
+    const selfTile = document.querySelector('[data-self-name]');
+    if (selfTile) {
+      const displayName = selfTile.getAttribute('data-self-name') || '';
+      if (displayName) {
+        console.log('[MeetDetector] User info from self tile:', displayName);
+        return { displayName };
+      }
+    }
+
+    // Method 3: From participant list (look for "You" marker)
+    const participants = document.querySelectorAll('[data-participant-id]');
+    for (const participant of Array.from(participants)) {
+      const isYou = participant.textContent?.includes('(You)') || participant.textContent?.includes('(you)');
+      if (isYou) {
+        const displayName = participant.textContent?.replace(/\s*\(You\)\s*/i, '').trim() || '';
+        if (displayName) {
+          console.log('[MeetDetector] User info from participant list:', displayName);
+          return { displayName };
+        }
+      }
+    }
+
+    console.warn('[MeetDetector] User info not found');
+    return null;
+  }
+
   async waitForMeetUI(): Promise<void> {
     return new Promise((resolve) => {
       // Check if Meet UI is already loaded
