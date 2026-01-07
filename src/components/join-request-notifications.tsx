@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Button } from '@/components/button';
-import { createClientForBrowser } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 import type { JoinRequest } from '@/lib/supabase/types';
 
 interface JoinRequestNotificationsProps {
@@ -14,46 +14,83 @@ export function JoinRequestNotifications({ sessionId, sessionCode }: JoinRequest
   const [pendingRequests, setPendingRequests] = useState<JoinRequest[]>([]);
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
 
-  // Fetch pending join requests
-  const fetchPendingRequests = async () => {
+  // Fetch pending join requests - stable function with no dependencies
+  const fetchPendingRequests = useCallback(async (code: string) => {
     try {
-      const response = await fetch(`/api/sessions/${sessionCode}/join-requests`);
+      console.log('Fetching join requests for session:', code);
+      const response = await fetch(`/api/sessions/${code}/join-requests`);
       if (response.ok) {
         const data = await response.json();
         const pending = (data.requests || []).filter((r: JoinRequest) => r.status === 'pending');
+        console.log('Pending join requests:', pending.length);
         setPendingRequests(pending);
       }
     } catch (error) {
       console.error('Failed to fetch join requests:', error);
     }
-  };
+  }, []);
 
-  // Subscribe to realtime changes
+  // Initial fetch and polling fallback
   useEffect(() => {
-    fetchPendingRequests();
+    fetchPendingRequests(sessionCode);
 
-    const supabase = createClientForBrowser();
+    // Poll every 5 seconds as fallback for realtime
+    const pollInterval = setInterval(() => {
+      fetchPendingRequests(sessionCode);
+    }, 5000);
+
+    return () => clearInterval(pollInterval);
+  }, [sessionCode, fetchPendingRequests]);
+
+  // Subscribe to realtime changes (may not work due to RLS, polling is fallback)
+  useEffect(() => {
+    if (!sessionId) return;
+
+    console.log('Setting up join requests subscription for session:', sessionId);
+
     const channel = supabase
-      .channel(`join-requests-${sessionId}`)
+      .channel(`join-requests-realtime-${sessionId}`)
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
           table: 'join_requests',
-          filter: `session_id=eq.${sessionId}`,
         },
         (payload) => {
-          console.log('Join request change:', payload);
-          fetchPendingRequests();
+          console.log('Join request INSERT:', payload);
+          const newRecord = payload.new as { session_id?: string };
+          if (newRecord?.session_id === sessionId) {
+            console.log('New join request for our session, refetching...');
+            fetchPendingRequests(sessionCode);
+          }
         }
       )
-      .subscribe();
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'join_requests',
+        },
+        (payload) => {
+          console.log('Join request UPDATE:', payload);
+          const newRecord = payload.new as { session_id?: string };
+          if (newRecord?.session_id === sessionId) {
+            console.log('Join request updated for our session, refetching...');
+            fetchPendingRequests(sessionCode);
+          }
+        }
+      )
+      .subscribe((status, err) => {
+        console.log('Join requests subscription status:', status, err);
+      });
 
     return () => {
+      console.log('Cleaning up join requests subscription');
       supabase.removeChannel(channel);
     };
-  }, [sessionId, sessionCode]);
+  }, [sessionId, sessionCode, fetchPendingRequests]);
 
   const handleApprove = async (requestId: string) => {
     setIsProcessing(requestId);

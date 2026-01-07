@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/button';
 import { Input } from '@/components/input';
 import { Select } from '@/components/select';
 import { useUser } from '@/lib/hooks/useUser';
+import { createClientForBrowser } from '@/lib/supabase/client';
 import type { Session } from '@/lib/supabase/types';
 
 interface SessionData {
@@ -100,7 +101,8 @@ function JoinSessionContent() {
             if (data.userJoinRequestStatus === 'pending') {
               setSuccess('You have a pending join request for this session. Please wait for host approval.');
             } else if (data.userJoinRequestStatus === 'rejected') {
-              setError('Your previous join request was rejected.');
+              // Show form to allow re-requesting
+              setShowRequestForm(true);
             } else {
               setShowRequestForm(true);
             }
@@ -137,7 +139,15 @@ function JoinSessionContent() {
         throw new Error(data.error || 'Failed to send join request');
       }
 
-      setSuccess(data.message || 'Your request has been sent to the host!');
+      // Update sessionData to trigger polling
+      if (sessionData) {
+        setSessionData({
+          ...sessionData,
+          userJoinRequestStatus: 'pending',
+        });
+      }
+
+      setSuccess('You have a pending join request for this session. Please wait for host approval.');
       setShowRequestForm(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to send join request');
@@ -187,6 +197,128 @@ function JoinSessionContent() {
     }
   };
 
+  // Auto-join session after approval
+  const autoJoinSession = useCallback(async () => {
+    if (!sessionCode || !name) return;
+
+    setIsLoading(true);
+    try {
+      const response = await fetch(`/api/sessions/${sessionCode}/join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          preferredLanguage: preferredLanguage || undefined,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to join session');
+      }
+
+      // Store participant info in sessionStorage
+      sessionStorage.setItem(
+        `session_${data.session.code}`,
+        JSON.stringify({
+          participantId: data.participant.id,
+          participantName: data.participant.name,
+          isHost: false,
+          preferredLanguage: data.participant.preferred_language,
+        }),
+      );
+
+      router.push(`/session/${data.session.code}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to join session');
+      setIsLoading(false);
+    }
+  }, [sessionCode, name, preferredLanguage, router]);
+
+  // Re-check session access (used when join request is approved)
+  const recheckSessionAccess = useCallback(async () => {
+    if (!sessionCode || sessionCode.length < 6) return;
+
+    try {
+      const response = await fetch(`/api/sessions/${sessionCode.toUpperCase()}`);
+      if (response.ok) {
+        const data: SessionData = await response.json();
+        setSessionData(data);
+
+        if (data.canAccess) {
+          setSuccess('Your join request has been approved! Joining session...');
+          setShowRequestForm(false);
+          // Auto-join the session
+          autoJoinSession();
+        } else if (data.userJoinRequestStatus === 'rejected') {
+          setError('Your join request was rejected by the host.');
+          setSuccess('');
+        }
+      }
+    } catch (err) {
+      console.error('Failed to recheck session access:', err);
+    }
+  }, [sessionCode, autoJoinSession]);
+
+  // Poll for join request status changes (fallback for realtime)
+  useEffect(() => {
+    if (!sessionData?.session?.id || !user?.email) return;
+
+    // Only poll if user has a pending join request
+    if (sessionData.userJoinRequestStatus !== 'pending') return;
+
+    console.log('Setting up polling for join request status');
+
+    // Poll every 3 seconds
+    const pollInterval = setInterval(() => {
+      recheckSessionAccess();
+    }, 3000);
+
+    return () => clearInterval(pollInterval);
+  }, [sessionData?.session?.id, sessionData?.userJoinRequestStatus, user?.email, recheckSessionAccess]);
+
+  // Subscribe to join request status changes (may not work due to RLS, polling is fallback)
+  useEffect(() => {
+    if (!sessionData?.session?.id || !user?.email) return;
+
+    // Only subscribe if user has a pending join request
+    if (sessionData.userJoinRequestStatus !== 'pending') return;
+
+    console.log('Setting up join request subscription for session:', sessionData.session.id);
+
+    const supabase = createClientForBrowser();
+    const channel = supabase
+      .channel(`join-request-status-${sessionData.session.id}-${user.email}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'join_requests',
+        },
+        (payload) => {
+          console.log('Join request UPDATE received:', payload);
+          const newRecord = payload.new as { session_id?: string; email?: string; status?: string };
+
+          // Check if this update is for our session and user
+          if (newRecord?.session_id === sessionData.session.id &&
+              newRecord?.email?.toLowerCase() === user.email?.toLowerCase()) {
+            console.log('Join request status changed to:', newRecord.status);
+            recheckSessionAccess();
+          }
+        }
+      )
+      .subscribe((status, err) => {
+        console.log('Join request subscription status:', status, err);
+      });
+
+    return () => {
+      console.log('Cleaning up join request subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [sessionData?.session?.id, sessionData?.userJoinRequestStatus, user?.email, recheckSessionAccess]);
+
   // Show loading while checking authentication
   if (isUserLoading) {
     return (
@@ -224,7 +356,17 @@ function JoinSessionContent() {
             />
           </div>
 
-          {success && <div className="text-green-400 text-sm bg-green-600/10 border border-green-600/30 rounded p-3">{success}</div>}
+          {success && (
+            <div className="text-green-400 text-sm bg-green-600/10 border border-green-600/30 rounded p-3">
+              {sessionData?.userJoinRequestStatus === 'pending' && (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-green-400 border-t-transparent rounded-full animate-spin" />
+                  <span>{success}</span>
+                </div>
+              )}
+              {sessionData?.userJoinRequestStatus !== 'pending' && success}
+            </div>
+          )}
           {error && <div className="text-red-400 text-sm bg-red-600/10 border border-red-600/30 rounded p-3">{error}</div>}
         </div>
 
@@ -250,7 +392,14 @@ function JoinSessionContent() {
             </div>
 
             <div className="border-t border-slate-600 pt-4">
-              <h4 className="text-white mb-3 font-medium">Request to Join</h4>
+              {sessionData.userJoinRequestStatus === 'rejected' && (
+                <div className="mb-4 p-3 bg-yellow-600/20 border border-yellow-600/30 rounded text-yellow-400 text-sm">
+                  Your previous request was rejected. You can send a new request with additional details.
+                </div>
+              )}
+              <h4 className="text-white mb-3 font-medium">
+                {sessionData.userJoinRequestStatus === 'rejected' ? 'Request Again' : 'Request to Join'}
+              </h4>
               <form onSubmit={handleSubmitJoinRequest} className="space-y-4">
                 <div>
                   <label className="block text-slate-300 mb-2">Your Name</label>
@@ -276,7 +425,7 @@ function JoinSessionContent() {
                   type="submit"
                   disabled={isLoading || !name}
                   className="w-full h-12 bg-blue-600 border-blue-600 text-white hover:bg-blue-700">
-                  {isLoading ? 'Sending Request...' : 'Send Join Request'}
+                  {isLoading ? 'Sending Request...' : sessionData.userJoinRequestStatus === 'rejected' ? 'Send New Request' : 'Send Join Request'}
                 </Button>
               </form>
             </div>

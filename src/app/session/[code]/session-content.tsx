@@ -13,6 +13,7 @@ import { useSessionTranscribe } from '@/lib/hooks/useSessionTranscribe';
 import { useSessionContexts } from '@/lib/hooks/useSessionContexts';
 import { ContextManagementPanel } from '@/components/context/ContextManagementPanel';
 import { JoinRequestNotifications } from '@/components/join-request-notifications';
+import { InviteModal } from '@/components/invite-modal';
 import type { TranslationConfig } from '@soniox/speech-to-text-web';
 
 interface ParticipantInfo {
@@ -112,6 +113,7 @@ export default function SessionContent({ code }: SessionContentProps) {
   const [selectedMic, setSelectedMic] = useState<string>('');
   const [isRecording, setIsRecording] = useState(false);
   const [isScheduled, setIsScheduled] = useState(false);
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
 
   const { session, isLoading: sessionLoading, error: sessionError, endSession } = useSession(code);
   const { participants, leaveSession } = useParticipants(session?.id, code);
@@ -477,9 +479,19 @@ export default function SessionContent({ code }: SessionContentProps) {
 
         {/* Participants */}
         <div className="flex-1 overflow-auto mb-4">
-          <h3 className="text-sm font-medium text-slate-300 mb-2">
-            Participants ({participants.filter((p) => !p.left_at).length})
-          </h3>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-medium text-slate-300">
+              Participants ({participants.filter((p) => !p.left_at).length})
+            </h3>
+            {participantInfo?.isHost && (
+              <button
+                onClick={() => setIsInviteModalOpen(true)}
+                className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+              >
+                + Invite
+              </button>
+            )}
+          </div>
           <div className="space-y-1">
             {participants.map((p) => {
               const isOnline = !p.left_at;
@@ -582,6 +594,13 @@ export default function SessionContent({ code }: SessionContentProps) {
         )}
       </div>
       </div>
+
+      {/* Invite Modal */}
+      <InviteModal
+        sessionCode={code}
+        isOpen={isInviteModalOpen}
+        onClose={() => setIsInviteModalOpen(false)}
+      />
     </div>
   );
 }
