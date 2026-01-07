@@ -14,9 +14,6 @@ jobs:
   deploy-database:
     name: Deploy Database Migrations
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: examples/nextjs
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
