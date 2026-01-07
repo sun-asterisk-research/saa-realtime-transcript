@@ -477,16 +477,22 @@ export default function SessionContent({ code }: SessionContentProps) {
 
         {/* Participants */}
         <div className="flex-1 overflow-auto mb-4">
-          <h3 className="text-sm font-medium text-slate-300 mb-2">Participants ({participants.length})</h3>
+          <h3 className="text-sm font-medium text-slate-300 mb-2">
+            Participants ({participants.filter((p) => !p.left_at).length})
+          </h3>
           <div className="space-y-1">
-            {participants.map((p) => (
-              <div key={p.id} className="text-sm text-slate-400 flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-green-500" />
-                {p.name}
-                {p.is_host && <span className="text-xs text-blue-400">(Host)</span>}
-                {p.id === participantInfo?.participantId && <span className="text-xs text-slate-500">(You)</span>}
-              </div>
-            ))}
+            {participants.map((p) => {
+              const isOnline = !p.left_at;
+              return (
+                <div key={p.id} className={`text-sm flex items-center gap-2 ${isOnline ? 'text-slate-400' : 'text-slate-600'}`}>
+                  <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-500' : 'bg-slate-600'}`} />
+                  {p.name}
+                  {p.is_host && <span className="text-xs text-blue-400">(Host)</span>}
+                  {p.id === participantInfo?.participantId && <span className="text-xs text-slate-500">(You)</span>}
+                  {!isOnline && <span className="text-xs text-slate-600">(Left)</span>}
+                </div>
+              );
+            })}
           </div>
         </div>
 

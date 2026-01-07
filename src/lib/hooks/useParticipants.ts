@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import type { Participant } from '@/lib/supabase/types';
 
@@ -14,26 +14,40 @@ export function useParticipants(sessionId: string | undefined, code: string): Us
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchParticipants = useCallback(async () => {
-    if (!sessionId) return;
+  // Use ref to store sessionId for use in subscription callback
+  const sessionIdRef = useRef(sessionId);
+  sessionIdRef.current = sessionId;
+
+  const fetchParticipants = useCallback(async (sid?: string) => {
+    const targetSessionId = sid || sessionIdRef.current;
+    if (!targetSessionId) return;
 
     try {
       const { data, error: fetchError } = await supabase
         .from('participants')
         .select('*')
-        .eq('session_id', sessionId)
-        .is('left_at', null)
+        .eq('session_id', targetSessionId)
         .order('joined_at', { ascending: true });
 
       if (fetchError) throw fetchError;
-      setParticipants(data || []);
+
+      // Sort: online participants (left_at is null) first, then offline
+      const sorted = (data || []).sort((a, b) => {
+        const aOnline = a.left_at === null;
+        const bOnline = b.left_at === null;
+        if (aOnline && !bOnline) return -1;
+        if (!aOnline && bOnline) return 1;
+        return 0;
+      });
+
+      setParticipants(sorted);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch participants');
     } finally {
       setIsLoading(false);
     }
-  }, [sessionId]);
+  }, []);
 
   const leaveSession = useCallback(
     async (participantId: string) => {
@@ -53,32 +67,77 @@ export function useParticipants(sessionId: string | undefined, code: string): Us
     [code],
   );
 
+  // Initial fetch
   useEffect(() => {
-    fetchParticipants();
-  }, [fetchParticipants]);
+    if (sessionId) {
+      fetchParticipants(sessionId);
+    }
+  }, [sessionId, fetchParticipants]);
 
-  // Subscribe to participant changes
+  // Subscribe to participant changes - only depends on sessionId
   useEffect(() => {
     if (!sessionId) return;
 
+    console.log('Setting up participants subscription for session:', sessionId);
+
+    const handleChange = () => {
+      console.log('Participant change detected, refetching...');
+      fetchParticipants(sessionId);
+    };
+
     const channel = supabase
-      .channel(`participants:${sessionId}`)
+      .channel(`participants-realtime-${sessionId}`)
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
           table: 'participants',
-          filter: `session_id=eq.${sessionId}`,
         },
-        () => {
-          // Refetch on any change
-          fetchParticipants();
+        (payload) => {
+          console.log('Participant INSERT received:', payload);
+          const newRecord = payload.new as { session_id?: string };
+          if (newRecord?.session_id === sessionId) {
+            handleChange();
+          }
         },
       )
-      .subscribe();
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'participants',
+        },
+        (payload) => {
+          console.log('Participant UPDATE received:', payload);
+          const newRecord = payload.new as { session_id?: string };
+          if (newRecord?.session_id === sessionId) {
+            handleChange();
+          }
+        },
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'participants',
+        },
+        (payload) => {
+          console.log('Participant DELETE received:', payload);
+          const oldRecord = payload.old as { session_id?: string };
+          if (oldRecord?.session_id === sessionId) {
+            handleChange();
+          }
+        },
+      )
+      .subscribe((status, err) => {
+        console.log('Participants subscription status:', status, err);
+      });
 
     return () => {
+      console.log('Cleaning up participants subscription');
       supabase.removeChannel(channel);
     };
   }, [sessionId, fetchParticipants]);

@@ -116,24 +116,78 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Set is_host to true if user is the session creator
     const isHost = user ? session.creator_user_id === user.id : false;
 
-    const { data: participantData, error: participantError } = await supabase
-      .from('participants')
-      .insert({
-        session_id: session.id,
-        user_id: user?.id || null, // Link to user if authenticated
-        name,
-        preferred_language: validatedPreferredLanguage,
-        is_host: isHost,
-      })
-      .select()
-      .single();
+    let participant: Participant;
 
-    if (participantError) {
-      console.error('Error joining session:', participantError);
-      return NextResponse.json({ error: 'Failed to join session' }, { status: 500 });
+    // Check if authenticated user already has a participant record in this session
+    if (user?.id) {
+      const { data: existingParticipant } = await supabase
+        .from('participants')
+        .select('*')
+        .eq('session_id', session.id)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (existingParticipant) {
+        // Reactivate existing participant (reset left_at to null)
+        const { data: updatedParticipant, error: updateError } = await supabase
+          .from('participants')
+          .update({
+            left_at: null,
+            name, // Update name in case it changed
+            preferred_language: validatedPreferredLanguage,
+          })
+          .eq('id', existingParticipant.id)
+          .select()
+          .single();
+
+        if (updateError) {
+          console.error('Error reactivating participant:', updateError);
+          return NextResponse.json({ error: 'Failed to join session' }, { status: 500 });
+        }
+
+        participant = updatedParticipant as Participant;
+      } else {
+        // Create new participant for authenticated user
+        const { data: newParticipant, error: insertError } = await supabase
+          .from('participants')
+          .insert({
+            session_id: session.id,
+            user_id: user.id,
+            name,
+            preferred_language: validatedPreferredLanguage,
+            is_host: isHost,
+          })
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error('Error joining session:', insertError);
+          return NextResponse.json({ error: 'Failed to join session' }, { status: 500 });
+        }
+
+        participant = newParticipant as Participant;
+      }
+    } else {
+      // Create new participant for anonymous user
+      const { data: newParticipant, error: insertError } = await supabase
+        .from('participants')
+        .insert({
+          session_id: session.id,
+          user_id: null,
+          name,
+          preferred_language: validatedPreferredLanguage,
+          is_host: isHost,
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error('Error joining session:', insertError);
+        return NextResponse.json({ error: 'Failed to join session' }, { status: 500 });
+      }
+
+      participant = newParticipant as Participant;
     }
-
-    const participant = participantData as Participant;
 
     return NextResponse.json({
       session,
