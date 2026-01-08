@@ -6,6 +6,29 @@ import { useSession } from '@/lib/hooks/useSession';
 import { useTranscripts } from '@/lib/hooks/useTranscripts';
 import { Select } from '@/components/select';
 
+// Generate color for speaker diarization (supports up to 15 speakers)
+function getSpeakerColor(speakerId: string): string {
+  const colors = [
+    'text-blue-400',    // Speaker 1
+    'text-green-400',   // Speaker 2
+    'text-purple-400',  // Speaker 3
+    'text-pink-400',    // Speaker 4
+    'text-cyan-400',    // Speaker 5
+    'text-orange-400',  // Speaker 6
+    'text-teal-400',    // Speaker 7
+    'text-indigo-400',  // Speaker 8
+    'text-yellow-400',  // Speaker 9
+    'text-red-400',     // Speaker 10
+    'text-lime-400',    // Speaker 11
+    'text-rose-400',    // Speaker 12
+    'text-amber-400',   // Speaker 13
+    'text-emerald-400', // Speaker 14
+    'text-fuchsia-400', // Speaker 15
+  ];
+  const index = parseInt(speakerId, 10) - 1; // Speaker IDs are 1-based
+  return colors[Math.abs(index) % colors.length];
+}
+
 // Helper function to get display text based on language preference
 function getDisplayText(
   transcript: {
@@ -159,18 +182,27 @@ export default function DisplayPage({ params }: { params: Promise<{ code: string
       >
         <div className="space-y-6 max-w-5xl mx-auto">
           {/* Final transcripts */}
-          {transcripts.map((t, index) => (
-            <div
-              key={t.id}
-              className="text-white animate-fadeIn"
-              style={{ animationDelay: `${index * 0.05}s` }}
-            >
-              <span className="text-blue-400 font-medium text-lg">{t.participant_name}: </span>
-              <span className="text-2xl md:text-3xl leading-relaxed">
-                {getDisplayText(t, displayLanguage, session.mode)}
-              </span>
-            </div>
-          ))}
+          {transcripts.map((t, index) => {
+            const enableDiarization = session.enable_speaker_diarization && t.speaker_id;
+            const textColor = enableDiarization
+              ? getSpeakerColor(t.speaker_id!)
+              : 'text-blue-400';
+            return (
+              <div
+                key={t.id}
+                className="text-white animate-fadeIn"
+                style={{ animationDelay: `${index * 0.05}s` }}
+              >
+                <span className={`${textColor} font-medium text-lg`}>
+                  {t.participant_name}
+                  {enableDiarization && ` (Speaker ${t.speaker_id})`}:{' '}
+                </span>
+                <span className="text-2xl md:text-3xl leading-relaxed">
+                  {getDisplayText(t, displayLanguage, session.mode)}
+                </span>
+              </div>
+            );
+          })}
 
           {/* Streaming transcripts from other participants */}
           {Array.from(streamingTranscripts.entries()).map(([id, data]) => {
@@ -184,9 +216,16 @@ export default function DisplayPage({ params }: { params: Promise<{ code: string
               displayLanguage,
               session.mode
             );
+            const enableDiarization = session.enable_speaker_diarization && data.speakerId;
+            const textColor = enableDiarization
+              ? getSpeakerColor(data.speakerId!)
+              : 'text-yellow-400';
             return (
               <div key={id} className="text-yellow-300">
-                <span className="text-yellow-400 font-medium text-lg">{data.participantName}: </span>
+                <span className={`${textColor} font-medium text-lg`}>
+                  {data.participantName}
+                  {enableDiarization && ` (Speaker ${data.speakerId})`}:{' '}
+                </span>
                 <span className="text-2xl md:text-3xl leading-relaxed">
                   {displayText}
                 </span>

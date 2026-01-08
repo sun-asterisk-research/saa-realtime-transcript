@@ -17,6 +17,7 @@ interface CreateSessionRequest {
   isPublic?: boolean; // NEW - Public vs private session
   invitedEmails?: string[]; // NEW - List of invited emails
   contextSetIds?: string[]; // Optional context sets to attach to session
+  enableSpeakerDiarization?: boolean; // Enable speaker diarization for offline meetings
 }
 
 export async function POST(request: NextRequest) {
@@ -45,6 +46,7 @@ export async function POST(request: NextRequest) {
       isPublic = false,
       invitedEmails = [],
       contextSetIds,
+      enableSpeakerDiarization = false,
     } = body;
 
     // 2. Validate required fields
@@ -87,6 +89,7 @@ export async function POST(request: NextRequest) {
         target_language: mode === 'one_way' ? targetLanguage : null,
         language_a: mode === 'two_way' ? languageA : null,
         language_b: mode === 'two_way' ? languageB : null,
+        enable_speaker_diarization: enableSpeakerDiarization,
       })
       .select()
       .single();

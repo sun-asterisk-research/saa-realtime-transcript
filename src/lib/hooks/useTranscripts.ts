@@ -10,6 +10,7 @@ interface StreamingTranscript {
   translatedText?: string;
   sourceLanguage?: string;
   targetLanguage?: string;
+  speakerId?: string;
   timestamp: number;
 }
 

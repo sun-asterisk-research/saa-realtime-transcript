@@ -13,6 +13,7 @@ interface TranscriptRequest {
   translatedText?: string;
   sourceLanguage?: string;
   targetLanguage?: string;
+  speakerId?: string;
   isFinal: boolean;
 }
 
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const { code } = await params;
     const body: TranscriptRequest = await request.json();
-    const { participantId, participantName, originalText, translatedText, sourceLanguage, targetLanguage, isFinal } =
+    const { participantId, participantName, originalText, translatedText, sourceLanguage, targetLanguage, speakerId, isFinal } =
       body;
 
     if (!participantName || !originalText) {
@@ -97,6 +98,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         translated_text: translatedText || null,
         source_language: sourceLanguage || null,
         target_language: targetLanguage || null,
+        speaker_id: speakerId || null,
         is_final: isFinal,
       })
       .select()

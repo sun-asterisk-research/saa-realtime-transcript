@@ -26,6 +26,7 @@ export default function CreateSession() {
   const [isPublic, setIsPublic] = useState(false);
   const [invitedEmails, setInvitedEmails] = useState<string[]>([]);
   const [selectedContextIds, setSelectedContextIds] = useState<string[]>([]);
+  const [enableSpeakerDiarization, setEnableSpeakerDiarization] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -107,6 +108,7 @@ export default function CreateSession() {
         scheduledStartTime: scheduledStartTimeISO,
         isPublic,
         invitedEmails,
+        enableSpeakerDiarization,
       };
 
       if (mode === 'one_way') {
@@ -263,6 +265,25 @@ export default function CreateSession() {
               </div>
             </>
           )}
+
+          {/* Speaker Diarization */}
+          <div className="bg-slate-700/30 rounded-lg p-4">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={enableSpeakerDiarization}
+                onChange={(e) => setEnableSpeakerDiarization(e.target.checked)}
+                className="mt-1 w-4 h-4 rounded border-slate-500 text-blue-600 focus:ring-blue-500"
+              />
+              <div>
+                <span className="text-white font-medium">Enable Speaker Diarization</span>
+                <p className="text-slate-400 text-sm mt-1">
+                  Identify different speakers when multiple people speak into the same microphone.
+                  Useful for offline meetings where everyone shares one mic.
+                </p>
+              </div>
+            </label>
+          </div>
 
           {/* Scheduled Start Time */}
           <div>

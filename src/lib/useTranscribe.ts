@@ -14,6 +14,7 @@ interface UseTranscribeParameters {
   apiKey: string | (() => Promise<string>);
   translationConfig?: TranslationConfig;
   context?: Context;
+  enableSpeakerDiarization?: boolean;
   onStarted?: () => void;
   onFinished?: () => void;
 }
@@ -29,6 +30,7 @@ export default function useTranscribe({
   apiKey,
   translationConfig,
   context,
+  enableSpeakerDiarization = false,
   onStarted,
   onFinished,
 }: UseTranscribeParameters) {
@@ -56,7 +58,7 @@ export default function useTranscribe({
     sonioxClient.current?.start({
       model: 'stt-rt-preview',
       enableLanguageIdentification: true,
-      enableSpeakerDiarization: true,
+      enableSpeakerDiarization,
       enableEndpointDetection: true,
       translation: translationConfig || undefined,
       context: context || undefined,
@@ -95,7 +97,7 @@ export default function useTranscribe({
         setNonFinalTokens(newNonFinalTokens);
       },
     });
-  }, [onFinished, onStarted, translationConfig, context]);
+  }, [onFinished, onStarted, translationConfig, context, enableSpeakerDiarization]);
 
   const stopTranscription = useCallback(() => {
     sonioxClient.current?.stop();

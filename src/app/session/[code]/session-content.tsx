@@ -44,6 +44,29 @@ function getParticipantColor(participantName: string): string {
   return colors[Math.abs(hash) % colors.length];
 }
 
+// Generate color for speaker diarization (supports up to 15 speakers)
+function getSpeakerColor(speakerId: string): string {
+  const colors = [
+    'text-blue-400',    // Speaker 1
+    'text-green-400',   // Speaker 2
+    'text-purple-400',  // Speaker 3
+    'text-pink-400',    // Speaker 4
+    'text-cyan-400',    // Speaker 5
+    'text-orange-400',  // Speaker 6
+    'text-teal-400',    // Speaker 7
+    'text-indigo-400',  // Speaker 8
+    'text-yellow-400',  // Speaker 9
+    'text-red-400',     // Speaker 10
+    'text-lime-400',    // Speaker 11
+    'text-rose-400',    // Speaker 12
+    'text-amber-400',   // Speaker 13
+    'text-emerald-400', // Speaker 14
+    'text-fuchsia-400', // Speaker 15
+  ];
+  const index = parseInt(speakerId, 10) - 1; // Speaker IDs are 1-based
+  return colors[Math.abs(index) % colors.length];
+}
+
 // Helper function to get display text based on user's language preference
 // Returns { text, isTranslated } to know if we're showing translated version
 function getDisplayText(
@@ -141,6 +164,7 @@ export default function SessionContent({ code }: SessionContentProps) {
       translatedText?: string;
       sourceLanguage?: string;
       targetLanguage?: string;
+      speakerId?: string;
       timestamp: number;
     }) => {
       broadcastStreaming(data);
@@ -149,7 +173,7 @@ export default function SessionContent({ code }: SessionContentProps) {
   );
 
   const handleFinalTranscript = useCallback(
-    async (data: { originalText: string; translatedText?: string; sourceLanguage?: string; targetLanguage?: string }) => {
+    async (data: { originalText: string; translatedText?: string; sourceLanguage?: string; targetLanguage?: string; speakerId?: string }) => {
       if (!participantInfo) return;
 
       try {
@@ -163,6 +187,7 @@ export default function SessionContent({ code }: SessionContentProps) {
             translatedText: data.translatedText,
             sourceLanguage: data.sourceLanguage,
             targetLanguage: data.targetLanguage,
+            speakerId: data.speakerId,
             isFinal: true,
           }),
         });
@@ -179,12 +204,13 @@ export default function SessionContent({ code }: SessionContentProps) {
     [code, participantInfo, addTranscript],
   );
 
-  const { start, stop, state, streamingOriginal, streamingTranslated, currentSourceLanguage, currentTargetLanguage } = useSessionTranscribe({
+  const { start, stop, state, streamingOriginal, streamingTranslated, currentSourceLanguage, currentTargetLanguage, currentSpeakerId } = useSessionTranscribe({
     sessionCode: code,
     participantId: participantInfo?.participantId || '',
     participantName: participantInfo?.participantName || '',
     translationConfig,
     context: mergedContext,
+    enableSpeakerDiarization: session?.enable_speaker_diarization || false,
     onBroadcast: handleBroadcast,
     onFinalTranscript: handleFinalTranscript,
   });
@@ -537,12 +563,16 @@ export default function SessionContent({ code }: SessionContentProps) {
               {/* Final transcripts from database */}
               {transcripts.map((t) => {
                 const displayData = getDisplayText(t, displayLanguage, session?.mode || 'one_way');
-                const participantColor = getParticipantColor(t.participant_name);
+                const enableDiarization = session?.enable_speaker_diarization && t.speaker_id;
+                const textColor = enableDiarization
+                  ? getSpeakerColor(t.speaker_id!)
+                  : getParticipantColor(t.participant_name);
                 return (
                   <div key={t.id} className="text-white animate-fadeIn">
-                    <span className={`${participantColor} font-medium`}>
+                    <span className={`${textColor} font-medium`}>
                       {t.participant_name}
-                      {displayData.isTranslated && ' (Translated)'}:{' '}
+                      {enableDiarization && ` (Speaker ${t.speaker_id})`}
+                      {displayData.isTranslated && ' (translated)'}:{' '}
                     </span>
                     <span className="text-2xl">{displayData.text}</span>
                   </div>
@@ -563,12 +593,16 @@ export default function SessionContent({ code }: SessionContentProps) {
                     displayLanguage,
                     session?.mode || 'one_way'
                   );
-                  const participantColor = getParticipantColor(data.participantName);
+                  const enableDiarization = session?.enable_speaker_diarization && data.speakerId;
+                  const textColor = enableDiarization
+                    ? getSpeakerColor(data.speakerId!)
+                    : getParticipantColor(data.participantName);
                   return (
                     <div key={id} className="text-yellow-300 transition-opacity duration-150">
-                      <span className={`${participantColor} font-medium`}>
+                      <span className={`${textColor} font-medium`}>
                         {data.participantName}
-                        {displayData.isTranslated && ' (Translated)'}:{' '}
+                        {enableDiarization && ` (Speaker ${data.speakerId})`}
+                        {displayData.isTranslated && ' (translated)'}:{' '}
                       </span>
                       <span className="text-2xl">{displayData.text}</span>
                       <span className="inline-block w-2 h-6 bg-yellow-400 ml-1 animate-blink" />
@@ -579,10 +613,19 @@ export default function SessionContent({ code }: SessionContentProps) {
               {/* LOCAL streaming text - shows immediately while speaking */}
               {currentStreamingText && isRecording && (
                 <div className="text-yellow-300">
-                  <span className={`${getParticipantColor(participantInfo?.participantName || '')} font-medium`}>
-                    {participantInfo?.participantName}
-                    {isCurrentStreamingTranslated && ' (Translated)'}:{' '}
-                  </span>
+                  {(() => {
+                    const enableDiarization = session?.enable_speaker_diarization && currentSpeakerId;
+                    const textColor = enableDiarization
+                      ? getSpeakerColor(currentSpeakerId!)
+                      : getParticipantColor(participantInfo?.participantName || '');
+                    return (
+                      <span className={`${textColor} font-medium`}>
+                        {participantInfo?.participantName}
+                        {enableDiarization && ` (Speaker ${currentSpeakerId})`}
+                        {isCurrentStreamingTranslated && ' (translated)'}:{' '}
+                      </span>
+                    );
+                  })()}
                   <span className="text-2xl">{currentStreamingText}</span>
                   <span className="inline-block w-2 h-6 bg-yellow-400 ml-1 animate-blink" />
                 </div>

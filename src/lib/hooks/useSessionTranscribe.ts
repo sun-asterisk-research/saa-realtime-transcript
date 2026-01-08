@@ -6,6 +6,7 @@ import type { TranslationConfig, Token, Context } from '@soniox/speech-to-text-w
 interface PendingTranscript {
   originalText: string;
   sourceLanguage?: string;
+  speakerId?: string;
   timestamp: number;
 }
 
@@ -15,6 +16,7 @@ interface UseSessionTranscribeParams {
   participantName: string;
   translationConfig?: TranslationConfig;
   context?: Context;
+  enableSpeakerDiarization?: boolean;
   onBroadcast?: (data: {
     participantId: string;
     participantName: string;
@@ -22,6 +24,7 @@ interface UseSessionTranscribeParams {
     translatedText?: string;
     sourceLanguage?: string;
     targetLanguage?: string;
+    speakerId?: string;
     timestamp: number;
   }) => void;
   onFinalTranscript?: (data: {
@@ -29,6 +32,7 @@ interface UseSessionTranscribeParams {
     translatedText?: string;
     sourceLanguage?: string;
     targetLanguage?: string;
+    speakerId?: string;
   }) => void;
 }
 
@@ -38,6 +42,7 @@ export function useSessionTranscribe({
   participantName,
   translationConfig,
   context,
+  enableSpeakerDiarization = false,
   onBroadcast,
   onFinalTranscript,
 }: UseSessionTranscribeParams) {
@@ -49,6 +54,7 @@ export function useSessionTranscribe({
     apiKey: getAPIKey,
     translationConfig,
     context,
+    enableSpeakerDiarization,
   });
 
   // Handle non-final tokens - broadcast for streaming display
@@ -67,8 +73,9 @@ export function useSessionTranscribe({
     if (broadcastKey === lastBroadcastRef.current) return;
     lastBroadcastRef.current = broadcastKey;
 
-    // Get source language from original tokens
+    // Get source language and speaker from original tokens
     const sourceLanguage = originalTokens[0]?.language;
+    const speakerId = originalTokens[0]?.speaker;
 
     // Determine target language based on translation config
     let targetLanguage: string | undefined;
@@ -91,6 +98,7 @@ export function useSessionTranscribe({
         translatedText: translatedText || undefined,
         sourceLanguage,
         targetLanguage,
+        speakerId,
         timestamp: Date.now(),
       });
     }
@@ -115,6 +123,7 @@ export function useSessionTranscribe({
     const originalText = originalTokens.map((t) => t.text).join('');
     const translatedText = translatedTokens.map((t) => t.text).join('');
     const sourceLanguage = originalTokens[0]?.language;
+    const speakerId = originalTokens[0]?.speaker;
 
     // Skip if no tokens at all
     if (originalTokens.length === 0 && translatedTokens.length === 0) return;
@@ -147,6 +156,7 @@ export function useSessionTranscribe({
         pendingOriginalRef.current = {
           originalText,
           sourceLanguage,
+          speakerId,
           timestamp: Date.now(),
         };
         return; // Don't save yet
@@ -158,6 +168,7 @@ export function useSessionTranscribe({
             translatedText: undefined,
             sourceLanguage,
             targetLanguage,
+            speakerId,
           });
         }
       }
@@ -172,6 +183,7 @@ export function useSessionTranscribe({
           translatedText,
           sourceLanguage: pending?.sourceLanguage,
           targetLanguage,
+          speakerId: pending?.speakerId,
         });
       }
       pendingOriginalRef.current = null;
@@ -184,6 +196,7 @@ export function useSessionTranscribe({
           translatedText,
           sourceLanguage,
           targetLanguage,
+          speakerId,
         });
       }
     }
@@ -208,8 +221,9 @@ export function useSessionTranscribe({
     .map((t) => t.text)
     .join('');
 
-  // Get current source language from streaming tokens
+  // Get current source language and speaker from streaming tokens
   const currentSourceLanguage = originalTokens[0]?.language;
+  const currentSpeakerId = originalTokens[0]?.speaker;
 
   // Compute current target language
   let currentTargetLanguage: string | undefined;
@@ -236,5 +250,6 @@ export function useSessionTranscribe({
     streamingTranslated,
     currentSourceLanguage,
     currentTargetLanguage,
+    currentSpeakerId,
   };
 }

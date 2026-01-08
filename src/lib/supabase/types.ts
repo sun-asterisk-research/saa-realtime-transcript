@@ -15,6 +15,7 @@ export interface Session {
   target_language: string | null;
   language_a: string | null;
   language_b: string | null;
+  enable_speaker_diarization: boolean;
   status: SessionStatus;
   created_at: string;
   ended_at: string | null;
@@ -40,6 +41,7 @@ export interface Transcript {
   translated_text: string | null;
   source_language: string | null;
   target_language: string | null;
+  speaker_id: string | null;
   is_final: boolean;
   sequence_number: number;
   created_at: string;
@@ -156,11 +158,12 @@ export interface Database {
     Tables: {
       sessions: {
         Row: Session;
-        Insert: Omit<Session, 'id' | 'created_at' | 'ended_at' | 'status'> & {
+        Insert: Omit<Session, 'id' | 'created_at' | 'ended_at' | 'status' | 'enable_speaker_diarization'> & {
           id?: string;
           created_at?: string;
           ended_at?: string | null;
           status?: SessionStatus;
+          enable_speaker_diarization?: boolean;
         };
         Update: Partial<Session>;
       };
@@ -176,10 +179,11 @@ export interface Database {
       };
       transcripts: {
         Row: Transcript;
-        Insert: Omit<Transcript, 'id' | 'created_at' | 'sequence_number'> & {
+        Insert: Omit<Transcript, 'id' | 'created_at' | 'sequence_number' | 'speaker_id'> & {
           id?: string;
           created_at?: string;
           sequence_number?: number;
+          speaker_id?: string | null;
         };
         Update: Partial<Transcript>;
       };
