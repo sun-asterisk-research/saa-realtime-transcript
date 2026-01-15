@@ -1,0 +1,2 @@
+-- Sync migration to match remote database history
+-- This migration was already applied on remote, creating placeholder to sync local
