@@ -3,7 +3,39 @@
 import { useEffect, useState, use } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/button';
+import { FloatingBilingualButton } from '@/components/FloatingBilingualButton';
+import { BilingualTranscriptDisplay } from '@/components/BilingualTranscriptDisplay';
+import { useBilingualMode } from '@/contexts/BilingualModeContext';
 import type { Session, Transcript } from '@/lib/supabase/types';
+import type { Token } from '@soniox/speech-to-text-web';
+
+// Helper function to convert database transcripts to tokens for bilingual display
+function convertTranscriptToTokens(transcript: Transcript): Token[] {
+  const tokens: Token[] = [];
+
+  if (transcript.original_text) {
+    tokens.push({
+      text: transcript.original_text,
+      confidence: 1.0,
+      is_final: true,
+      translation_status: 'original',
+      language: transcript.source_language || undefined,
+      speaker: transcript.speaker_id || undefined,
+    });
+  }
+
+  if (transcript.translated_text) {
+    tokens.push({
+      text: transcript.translated_text,
+      confidence: 1.0,
+      is_final: true,
+      translation_status: 'translation',
+      language: transcript.target_language || undefined,
+    });
+  }
+
+  return tokens;
+}
 
 export default function HistoryPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = use(params);
@@ -11,6 +43,7 @@ export default function HistoryPage({ params }: { params: Promise<{ code: string
   const [transcripts, setTranscripts] = useState<Transcript[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { isBilingualMode } = useBilingualMode();
 
   useEffect(() => {
     async function fetchData() {
@@ -115,32 +148,60 @@ export default function HistoryPage({ params }: { params: Promise<{ code: string
             <div className="text-slate-500 text-center py-8">No transcripts recorded</div>
           ) : (
             <div className="space-y-4">
-              {transcripts.map((t) => (
-                <div key={t.id} className="border-b border-slate-700 pb-4 last:border-b-0 last:pb-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-blue-400 font-medium">{t.participant_name}</span>
-                    <span className="text-slate-500 text-xs">{formatDate(t.created_at)}</span>
-                    {t.source_language && (
-                      <span className="text-xs text-slate-500 bg-slate-700 px-1 rounded">
-                        {t.source_language.toUpperCase()}
-                      </span>
+              {transcripts.map((t) => {
+                if (isBilingualMode) {
+                  const tokens = convertTranscriptToTokens(t);
+                  return (
+                    <div key={t.id} className="border-b border-slate-700 pb-4 last:border-b-0 last:pb-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-blue-400 font-medium">{t.participant_name}</span>
+                        <span className="text-slate-500 text-xs">{formatDate(t.created_at)}</span>
+                        {t.speaker_id && (
+                          <span className="text-xs text-slate-500 bg-slate-700 px-1 rounded">
+                            Speaker {t.speaker_id}
+                          </span>
+                        )}
+                      </div>
+
+                      <BilingualTranscriptDisplay
+                        tokens={tokens}
+                        mode={session?.mode || 'one_way'}
+                        targetLanguage={session?.target_language || undefined}
+                        languageA={session?.language_a || undefined}
+                        languageB={session?.language_b || undefined}
+                        showSpeaker={false}
+                      />
+                    </div>
+                  );
+                }
+
+                return (
+                  <div key={t.id} className="border-b border-slate-700 pb-4 last:border-b-0 last:pb-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-blue-400 font-medium">{t.participant_name}</span>
+                      <span className="text-slate-500 text-xs">{formatDate(t.created_at)}</span>
+                      {t.source_language && (
+                        <span className="text-xs text-slate-500 bg-slate-700 px-1 rounded">
+                          {t.source_language.toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Original text */}
+                    <div className="text-slate-300 mb-1">{t.original_text}</div>
+
+                    {/* Translated text */}
+                    {t.translated_text && (
+                      <div className="text-white text-lg bg-slate-900/50 p-2 rounded">
+                        <span className="text-slate-500 text-xs mr-2">
+                          → {t.target_language?.toUpperCase() || 'Translated'}:
+                        </span>
+                        {t.translated_text}
+                      </div>
                     )}
                   </div>
-
-                  {/* Original text */}
-                  <div className="text-slate-300 mb-1">{t.original_text}</div>
-
-                  {/* Translated text */}
-                  {t.translated_text && (
-                    <div className="text-white text-lg bg-slate-900/50 p-2 rounded">
-                      <span className="text-slate-500 text-xs mr-2">
-                        → {t.target_language?.toUpperCase() || 'Translated'}:
-                      </span>
-                      {t.translated_text}
-                    </div>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -168,6 +229,9 @@ export default function HistoryPage({ params }: { params: Promise<{ code: string
           </Button>
         </div>
       </div>
+
+      {/* Floating Bilingual Button */}
+      <FloatingBilingualButton />
     </div>
   );
 }

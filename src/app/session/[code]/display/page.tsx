@@ -1,10 +1,15 @@
 'use client';
 
-import { useEffect, useRef, use, useState } from 'react';
+import { useEffect, useRef, use, useState, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useSession } from '@/lib/hooks/useSession';
 import { useTranscripts } from '@/lib/hooks/useTranscripts';
 import { Select } from '@/components/select';
+import { FloatingBilingualButton } from '@/components/FloatingBilingualButton';
+import { BilingualTranscriptDisplay } from '@/components/BilingualTranscriptDisplay';
+import { BilingualTwoColumnLayout } from '@/components/BilingualTwoColumnLayout';
+import { useBilingualMode } from '@/contexts/BilingualModeContext';
+import type { Token } from '@soniox/speech-to-text-web';
 
 // Generate color for speaker diarization (supports up to 15 speakers)
 function getSpeakerColor(speakerId: string): string {
@@ -64,6 +69,74 @@ function getDisplayText(
   return transcript.translated_text || transcript.original_text;
 }
 
+// Helper function to convert database transcripts to tokens for bilingual display
+function convertTranscriptToTokens(transcript: {
+  original_text: string;
+  translated_text?: string | null;
+  source_language?: string | null;
+  target_language?: string | null;
+  speaker_id?: string | null;
+}): Token[] {
+  const tokens: Token[] = [];
+
+  if (transcript.original_text) {
+    tokens.push({
+      text: transcript.original_text,
+      confidence: 1.0,
+      is_final: true,
+      translation_status: 'original',
+      language: transcript.source_language || undefined,
+      speaker: transcript.speaker_id || undefined,
+    });
+  }
+
+  if (transcript.translated_text) {
+    tokens.push({
+      text: transcript.translated_text,
+      confidence: 1.0,
+      is_final: true,
+      translation_status: 'translation',
+      language: transcript.target_language || undefined,
+    });
+  }
+
+  return tokens;
+}
+
+// Helper to convert streaming transcript to tokens
+function convertStreamingToTokens(data: {
+  text: string;
+  translatedText?: string;
+  sourceLanguage?: string;
+  targetLanguage?: string;
+  speakerId?: string;
+}): Token[] {
+  const tokens: Token[] = [];
+
+  if (data.text) {
+    tokens.push({
+      text: data.text,
+      confidence: 1.0,
+      is_final: false,
+      translation_status: 'original',
+      language: data.sourceLanguage,
+      speaker: data.speakerId,
+    });
+  }
+
+  if (data.translatedText) {
+    tokens.push({
+      text: data.translatedText,
+      confidence: 1.0,
+      is_final: false,
+      translation_status: 'translation',
+      language: data.targetLanguage,
+    });
+  }
+
+  return tokens;
+}
+
 export default function DisplayPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = use(params);
   const searchParams = useSearchParams();
@@ -71,9 +144,62 @@ export default function DisplayPage({ params }: { params: Promise<{ code: string
   const transcriptEndRef = useRef<HTMLDivElement>(null);
 
   const [displayLanguage, setDisplayLanguage] = useState<string>('');
+  const { isBilingualMode, toggleBilingualMode } = useBilingualMode();
 
   const { session, isLoading, error } = useSession(code);
   const { transcripts, streamingTranscripts } = useTranscripts(session?.id, code);
+
+  // Prepare bilingual layout items
+  const bilingualItems = useMemo(() => {
+    const items: Array<{
+      id: string;
+      participantName: string;
+      originalText: string;
+      translatedText?: string;
+      sourceLanguage?: string;
+      targetLanguage?: string;
+      speaker?: string;
+      isStreaming?: boolean;
+    }> = [];
+
+    // Add final transcripts
+    transcripts.forEach((t) => {
+      items.push({
+        id: t.id,
+        participantName: t.participant_name,
+        originalText: t.original_text,
+        translatedText: t.translated_text || undefined,
+        sourceLanguage: t.source_language || undefined,
+        targetLanguage: t.target_language || undefined,
+        speaker: t.speaker_id || undefined,
+        isStreaming: false,
+      });
+    });
+
+    // Add streaming transcripts
+    Array.from(streamingTranscripts.entries()).forEach(([id, data]) => {
+      items.push({
+        id: `streaming-${id}`,
+        participantName: data.participantName,
+        originalText: data.text,
+        translatedText: data.translatedText,
+        sourceLanguage: data.sourceLanguage,
+        targetLanguage: data.targetLanguage,
+        speaker: data.speakerId,
+        isStreaming: true,
+      });
+    });
+
+    return items;
+  }, [transcripts, streamingTranscripts]);
+
+  // Check URL parameter for bilingual mode
+  useEffect(() => {
+    const bilingualParam = searchParams.get('bilingual');
+    if (bilingualParam === 'true' && !isBilingualMode) {
+      toggleBilingualMode();
+    }
+  }, [searchParams]);
 
   // Initialize display language from URL param, localStorage, or default
   useEffect(() => {
@@ -158,8 +284,8 @@ export default function DisplayPage({ params }: { params: Promise<{ code: string
           </div>
         </div>
         <div className="flex items-center gap-4">
-          {/* Language Selector - only for two-way mode */}
-          {session.mode === 'two_way' && session.language_a && session.language_b && (
+          {/* Language Selector - only for two-way mode, hidden in bilingual mode */}
+          {session.mode === 'two_way' && session.language_a && session.language_b && !isBilingualMode && (
             <Select
               value={displayLanguage}
               onChange={(e) => handleLanguageChange(e.target.value)}
@@ -167,6 +293,9 @@ export default function DisplayPage({ params }: { params: Promise<{ code: string
               <option value={session.language_a}>{session.language_a.toUpperCase()}</option>
               <option value={session.language_b}>{session.language_b.toUpperCase()}</option>
             </Select>
+          )}
+          {isBilingualMode && (
+            <span className="text-slate-400 text-sm">Bilingual Mode</span>
           )}
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />
@@ -180,70 +309,83 @@ export default function DisplayPage({ params }: { params: Promise<{ code: string
         ref={scrollContainerRef}
         className="flex-1 overflow-y-auto p-6 scroll-smooth"
       >
-        <div className="space-y-6 max-w-5xl mx-auto">
-          {/* Final transcripts */}
-          {transcripts.map((t, index) => {
-            const enableDiarization = session.enable_speaker_diarization && t.speaker_id;
-            const textColor = enableDiarization
-              ? getSpeakerColor(t.speaker_id!)
-              : 'text-blue-400';
-            return (
-              <div
-                key={t.id}
-                className="text-white animate-fadeIn"
-                style={{ animationDelay: `${index * 0.05}s` }}
-              >
-                <span className={`${textColor} font-medium text-lg`}>
-                  {t.participant_name}
-                  {enableDiarization && ` (Speaker ${t.speaker_id})`}:{' '}
-                </span>
-                <span className="text-2xl md:text-3xl leading-relaxed">
-                  {getDisplayText(t, displayLanguage, session.mode)}
-                </span>
+        {isBilingualMode ? (
+          <div className="max-w-7xl mx-auto">
+            <BilingualTwoColumnLayout
+              items={bilingualItems}
+              mode={session.mode}
+              targetLanguage={session.target_language || undefined}
+              languageA={session.language_a || undefined}
+              languageB={session.language_b || undefined}
+            />
+            <div ref={transcriptEndRef} className="h-4" />
+          </div>
+        ) : (
+          <div className="space-y-6 max-w-5xl mx-auto">
+            {/* Final transcripts */}
+            {transcripts.map((t, index) => {
+              const enableDiarization = session.enable_speaker_diarization && t.speaker_id;
+              const textColor = enableDiarization
+                ? getSpeakerColor(t.speaker_id!)
+                : 'text-blue-400';
+              return (
+                <div
+                  key={t.id}
+                  className="text-white animate-fadeIn"
+                  style={{ animationDelay: `${index * 0.05}s` }}
+                >
+                  <span className={`${textColor} font-medium text-lg`}>
+                    {t.participant_name}
+                    {enableDiarization && ` (Speaker ${t.speaker_id})`}:{' '}
+                  </span>
+                  <span className="text-2xl md:text-3xl leading-relaxed">
+                    {getDisplayText(t, displayLanguage, session.mode)}
+                  </span>
+                </div>
+              );
+            })}
+
+            {/* Streaming transcripts from other participants */}
+            {Array.from(streamingTranscripts.entries()).map(([id, data]) => {
+              const enableDiarization = session.enable_speaker_diarization && data.speakerId;
+              const textColor = enableDiarization
+                ? getSpeakerColor(data.speakerId!)
+                : 'text-yellow-400';
+              const displayText = getDisplayText(
+                {
+                  original_text: data.text,
+                  translated_text: data.translatedText,
+                  source_language: data.sourceLanguage,
+                  target_language: data.targetLanguage,
+                },
+                displayLanguage,
+                session.mode
+              );
+              return (
+                <div key={id} className="text-yellow-300">
+                  <span className={`${textColor} font-medium text-lg`}>
+                    {data.participantName}
+                    {enableDiarization && ` (Speaker ${data.speakerId})`}:{' '}
+                  </span>
+                  <span className="text-2xl md:text-3xl leading-relaxed">
+                    {displayText}
+                  </span>
+                  <span className="inline-block w-2 h-6 bg-yellow-400 ml-1 animate-blink" />
+                </div>
+              );
+            })}
+
+            <div ref={transcriptEndRef} className="h-4" />
+
+            {/* Empty state */}
+            {transcripts.length === 0 && streamingTranscripts.size === 0 && (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <div className="text-slate-500 text-2xl mb-2">Waiting for participants to speak...</div>
+                  <div className="text-slate-600 text-sm">Transcripts will appear here in real-time</div>
+                </div>
               </div>
-            );
-          })}
-
-          {/* Streaming transcripts from other participants */}
-          {Array.from(streamingTranscripts.entries()).map(([id, data]) => {
-            const displayText = getDisplayText(
-              {
-                original_text: data.text,
-                translated_text: data.translatedText,
-                source_language: data.sourceLanguage,
-                target_language: data.targetLanguage,
-              },
-              displayLanguage,
-              session.mode
-            );
-            const enableDiarization = session.enable_speaker_diarization && data.speakerId;
-            const textColor = enableDiarization
-              ? getSpeakerColor(data.speakerId!)
-              : 'text-yellow-400';
-            return (
-              <div key={id} className="text-yellow-300">
-                <span className={`${textColor} font-medium text-lg`}>
-                  {data.participantName}
-                  {enableDiarization && ` (Speaker ${data.speakerId})`}:{' '}
-                </span>
-                <span className="text-2xl md:text-3xl leading-relaxed">
-                  {displayText}
-                </span>
-                <span className="inline-block w-2 h-6 bg-yellow-400 ml-1 animate-blink" />
-              </div>
-            );
-          })}
-
-          <div ref={transcriptEndRef} className="h-4" />
-        </div>
-
-        {/* Empty state */}
-        {transcripts.length === 0 && streamingTranscripts.size === 0 && (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center">
-              <div className="text-slate-500 text-2xl mb-2">Waiting for participants to speak...</div>
-              <div className="text-slate-600 text-sm">Transcripts will appear here in real-time</div>
-            </div>
+            )}
           </div>
         )}
       </div>
@@ -254,6 +396,9 @@ export default function DisplayPage({ params }: { params: Promise<{ code: string
           {transcripts.length} transcript{transcripts.length !== 1 ? 's' : ''}
         </span>
       </div>
+
+      {/* Floating Bilingual Button */}
+      <FloatingBilingualButton />
     </div>
   );
 }

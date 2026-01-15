@@ -1,6 +1,10 @@
 'use client';
 
 import { Button } from '@/components/button';
+import { BilingualToggle } from '@/components/BilingualToggle';
+import { FloatingBilingualButton } from '@/components/FloatingBilingualButton';
+import { BilingualTranscriptDisplay } from '@/components/BilingualTranscriptDisplay';
+import { useBilingualMode } from '@/contexts/BilingualModeContext';
 import useTranscribe from '@/lib/useTranscribe';
 import getAPIKey from '@/lib/utils';
 import { isActiveState, type Context } from '@soniox/speech-to-text-web';
@@ -80,6 +84,7 @@ export default function LiveTranscript() {
   const [selectedAudioDevice, setSelectedAudioDevice] = useState<string>('');
   const [videoStream, setVideoStream] = useState<MediaStream | null>(null);
   const [targetLanguage, setTargetLanguage] = useState<string>('en');
+  const { isBilingualMode } = useBilingualMode();
 
   const { state, finalTokens, nonFinalTokens, startTranscription, stopTranscription } = useTranscribe({
     apiKey: getAPIKey,
@@ -279,6 +284,9 @@ export default function LiveTranscript() {
               </select>
             </div>
 
+            {/* Bilingual Mode Toggle */}
+            <BilingualToggle />
+
             {/* Status */}
             <div className="mt-2 p-3 bg-white rounded-md border border-gray-200">
               <div className="flex items-center gap-2">
@@ -385,40 +393,56 @@ export default function LiveTranscript() {
           </button>
 
           {/* Transcript content */}
-          <div className={`flex flex-col items-center justify-center h-full ${isFullscreen ? 'pt-16 px-8' : ''}`}>
-            {!isFullscreen && (
-              <h2 className="text-xl font-semibold text-white mb-4">
-                Target Language ({targetLanguageLabel})
-              </h2>
-            )}
-            {translationTokens.length === 0 ? (
-              <div
-                className="flex items-center justify-center text-white/50"
-                style={{ fontSize: 'var(--text-placeholder)' }}>
-                {isActiveState(state) ? 'Listening...' : 'Click "Start" to begin transcription'}
-              </div>
-            ) : (
-              <div
-                ref={translationScrollRef}
-                className="leading-relaxed overflow-y-auto w-full text-center"
-                style={{ fontSize: 'var(--text-subtitle)', maxHeight: '4.8lh' }}>
-                {translationTokens.map((token, idx) => {
-                  const isStreaming = !token.is_final;
-                  return (
-                    <span
-                      key={idx}
-                      className={`${
-                        isStreaming
-                          ? 'text-primary'
-                          : 'text-white'
-                      }`}>
-                      {token.text}
-                    </span>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+          {isBilingualMode ? (
+            <div className={`h-full overflow-y-auto ${isFullscreen ? 'pt-16 px-8' : 'px-4'}`}>
+              {!isFullscreen && (
+                <h2 className="text-xl font-semibold text-white mb-4">
+                  Bilingual Transcription
+                </h2>
+              )}
+              <BilingualTranscriptDisplay
+                tokens={allTokens}
+                mode="one_way"
+                targetLanguage={targetLanguage}
+                showSpeaker={false}
+              />
+            </div>
+          ) : (
+            <div className={`flex flex-col items-center justify-center h-full ${isFullscreen ? 'pt-16 px-8' : ''}`}>
+              {!isFullscreen && (
+                <h2 className="text-xl font-semibold text-white mb-4">
+                  Target Language ({targetLanguageLabel})
+                </h2>
+              )}
+              {translationTokens.length === 0 ? (
+                <div
+                  className="flex items-center justify-center text-white/50"
+                  style={{ fontSize: 'var(--text-placeholder)' }}>
+                  {isActiveState(state) ? 'Listening...' : 'Click "Start" to begin transcription'}
+                </div>
+              ) : (
+                <div
+                  ref={translationScrollRef}
+                  className="leading-relaxed overflow-y-auto w-full text-center"
+                  style={{ fontSize: 'var(--text-subtitle)', maxHeight: '4.8lh' }}>
+                  {translationTokens.map((token, idx) => {
+                    const isStreaming = !token.is_final;
+                    return (
+                      <span
+                        key={idx}
+                        className={`${
+                          isStreaming
+                            ? 'text-primary'
+                            : 'text-white'
+                        }`}>
+                        {token.text}
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -428,6 +452,9 @@ export default function LiveTranscript() {
           Error occurred. Please try again.
         </div>
       )}
+
+      {/* Floating Bilingual Button */}
+      <FloatingBilingualButton />
     </main>
   );
 }

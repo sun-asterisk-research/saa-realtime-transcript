@@ -1,11 +1,16 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/button';
 import { Select } from '@/components/select';
 import { CountdownTimer } from '@/components/countdown-timer';
+import { BilingualToggle } from '@/components/BilingualToggle';
+import { FloatingBilingualButton } from '@/components/FloatingBilingualButton';
+import { BilingualTranscriptDisplay } from '@/components/BilingualTranscriptDisplay';
+import { BilingualTwoColumnLayout } from '@/components/BilingualTwoColumnLayout';
+import { useBilingualMode } from '@/contexts/BilingualModeContext';
 import { useSession } from '@/lib/hooks/useSession';
 import { useParticipants } from '@/lib/hooks/useParticipants';
 import { useTranscripts } from '@/lib/hooks/useTranscripts';
@@ -14,7 +19,7 @@ import { useSessionContexts } from '@/lib/hooks/useSessionContexts';
 import { ContextManagementPanel } from '@/components/context/ContextManagementPanel';
 import { JoinRequestNotifications } from '@/components/join-request-notifications';
 import { InviteModal } from '@/components/invite-modal';
-import type { TranslationConfig } from '@soniox/speech-to-text-web';
+import type { TranslationConfig, Token } from '@soniox/speech-to-text-web';
 
 interface ParticipantInfo {
   participantId: string;
@@ -121,6 +126,74 @@ function getDisplayText(
   };
 }
 
+// Helper function to convert database transcripts to tokens for bilingual display
+function convertTranscriptToTokens(transcript: {
+  original_text: string;
+  translated_text?: string | null;
+  source_language?: string | null;
+  target_language?: string | null;
+  speaker_id?: string | null;
+}): Token[] {
+  const tokens: Token[] = [];
+
+  if (transcript.original_text) {
+    tokens.push({
+      text: transcript.original_text,
+      confidence: 1.0,
+      is_final: true,
+      translation_status: 'original',
+      language: transcript.source_language || undefined,
+      speaker: transcript.speaker_id || undefined,
+    });
+  }
+
+  if (transcript.translated_text) {
+    tokens.push({
+      text: transcript.translated_text,
+      confidence: 1.0,
+      is_final: true,
+      translation_status: 'translation',
+      language: transcript.target_language || undefined,
+    });
+  }
+
+  return tokens;
+}
+
+// Helper to convert streaming transcript to tokens
+function convertStreamingToTokens(data: {
+  text: string;
+  translatedText?: string;
+  sourceLanguage?: string;
+  targetLanguage?: string;
+  speakerId?: string;
+}, isFinal: boolean = false): Token[] {
+  const tokens: Token[] = [];
+
+  if (data.text) {
+    tokens.push({
+      text: data.text,
+      confidence: 1.0,
+      is_final: isFinal,
+      translation_status: 'original',
+      language: data.sourceLanguage,
+      speaker: data.speakerId,
+    });
+  }
+
+  if (data.translatedText) {
+    tokens.push({
+      text: data.translatedText,
+      confidence: 1.0,
+      is_final: isFinal,
+      translation_status: 'translation',
+      language: data.targetLanguage,
+    });
+  }
+
+  return tokens;
+}
+
 interface SessionContentProps {
   code: string;
 }
@@ -137,6 +210,7 @@ export default function SessionContent({ code }: SessionContentProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [isScheduled, setIsScheduled] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const { isBilingualMode } = useBilingualMode();
 
   const { session, isLoading: sessionLoading, error: sessionError, endSession } = useSession(code);
   const { participants, leaveSession } = useParticipants(session?.id, code);
@@ -228,6 +302,77 @@ export default function SessionContent({ code }: SessionContentProps) {
   );
   const currentStreamingText = currentStreamingData.text;
   const isCurrentStreamingTranslated = currentStreamingData.isTranslated;
+
+  // Prepare bilingual layout items
+  const bilingualItems = useMemo(() => {
+    const items: Array<{
+      id: string;
+      participantName: string;
+      originalText: string;
+      translatedText?: string;
+      sourceLanguage?: string;
+      targetLanguage?: string;
+      speaker?: string;
+      isStreaming?: boolean;
+    }> = [];
+
+    // Add final transcripts
+    transcripts.forEach((t) => {
+      items.push({
+        id: t.id,
+        participantName: t.participant_name,
+        originalText: t.original_text,
+        translatedText: t.translated_text || undefined,
+        sourceLanguage: t.source_language || undefined,
+        targetLanguage: t.target_language || undefined,
+        speaker: t.speaker_id || undefined,
+        isStreaming: false,
+      });
+    });
+
+    // Add streaming transcripts from other participants
+    Array.from(streamingTranscripts.entries())
+      .filter(([id]) => id !== participantInfo?.participantId)
+      .forEach(([id, data]) => {
+        items.push({
+          id: `streaming-${id}`,
+          participantName: data.participantName,
+          originalText: data.text,
+          translatedText: data.translatedText,
+          sourceLanguage: data.sourceLanguage,
+          targetLanguage: data.targetLanguage,
+          speaker: data.speakerId,
+          isStreaming: true,
+        });
+      });
+
+    // Add local streaming
+    if (currentStreamingText && isRecording && participantInfo) {
+      items.push({
+        id: 'local-streaming',
+        participantName: participantInfo.participantName,
+        originalText: streamingOriginal,
+        translatedText: streamingTranslated || undefined,
+        sourceLanguage: currentSourceLanguage,
+        targetLanguage: currentTargetLanguage,
+        speaker: currentSpeakerId || undefined,
+        isStreaming: true,
+      });
+    }
+
+    return items;
+  }, [
+    transcripts,
+    streamingTranscripts,
+    participantInfo,
+    currentStreamingText,
+    isRecording,
+    streamingOriginal,
+    streamingTranslated,
+    currentSourceLanguage,
+    currentTargetLanguage,
+    currentSpeakerId,
+  ]);
 
   // Load participant info from sessionStorage
   useEffect(() => {
@@ -434,8 +579,8 @@ export default function SessionContent({ code }: SessionContentProps) {
             </div>
           </div>
 
-        {/* Display Language Selector - only for two-way mode */}
-        {session.mode === 'two_way' && session.language_a && session.language_b && (
+        {/* Display Language Selector - only for two-way mode, disabled in bilingual mode */}
+        {session.mode === 'two_way' && session.language_a && session.language_b && !isBilingualMode && (
           <div className="mb-6">
             <label className="block text-slate-300 mb-2 text-sm">Display Language</label>
             <Select
@@ -448,6 +593,14 @@ export default function SessionContent({ code }: SessionContentProps) {
             <p className="text-slate-500 text-xs mt-1">All transcripts shown in this language</p>
           </div>
         )}
+
+        {/* Bilingual Mode Toggle */}
+        <div className="mb-6">
+          <BilingualToggle />
+          {isBilingualMode && (
+            <p className="text-slate-500 text-xs mt-1">Showing both original and translated text</p>
+          )}
+        </div>
 
         {/* Microphone Selection */}
         <div className="mb-6">
@@ -554,6 +707,20 @@ export default function SessionContent({ code }: SessionContentProps) {
           <div className="flex-1 flex items-center justify-center">
             <div className="text-slate-500 text-xl">Start recording to see transcripts...</div>
           </div>
+        ) : isBilingualMode ? (
+          <div
+            ref={scrollContainerRef}
+            className="flex-1 overflow-y-auto p-6 scroll-smooth"
+          >
+            <BilingualTwoColumnLayout
+              items={bilingualItems}
+              mode={session?.mode || 'one_way'}
+              targetLanguage={session?.target_language || undefined}
+              languageA={session?.language_a || undefined}
+              languageB={session?.language_b || undefined}
+            />
+            <div ref={transcriptEndRef} />
+          </div>
         ) : (
           <div
             ref={scrollContainerRef}
@@ -562,11 +729,11 @@ export default function SessionContent({ code }: SessionContentProps) {
             <div className="space-y-4">
               {/* Final transcripts from database */}
               {transcripts.map((t) => {
-                const displayData = getDisplayText(t, displayLanguage, session?.mode || 'one_way');
                 const enableDiarization = session?.enable_speaker_diarization && t.speaker_id;
                 const textColor = enableDiarization
                   ? getSpeakerColor(t.speaker_id!)
                   : getParticipantColor(t.participant_name);
+                const displayData = getDisplayText(t, displayLanguage, session?.mode || 'one_way');
                 return (
                   <div key={t.id} className="text-white animate-fadeIn">
                     <span className={`${textColor} font-medium`}>
@@ -583,6 +750,10 @@ export default function SessionContent({ code }: SessionContentProps) {
               {Array.from(streamingTranscripts.entries())
                 .filter(([id]) => id !== participantInfo?.participantId) // Don't show own streaming twice
                 .map(([id, data]) => {
+                  const enableDiarization = session?.enable_speaker_diarization && data.speakerId;
+                  const textColor = enableDiarization
+                    ? getSpeakerColor(data.speakerId!)
+                    : getParticipantColor(data.participantName);
                   const displayData = getDisplayText(
                     {
                       original_text: data.text,
@@ -593,10 +764,6 @@ export default function SessionContent({ code }: SessionContentProps) {
                     displayLanguage,
                     session?.mode || 'one_way'
                   );
-                  const enableDiarization = session?.enable_speaker_diarization && data.speakerId;
-                  const textColor = enableDiarization
-                    ? getSpeakerColor(data.speakerId!)
-                    : getParticipantColor(data.participantName);
                   return (
                     <div key={id} className="text-yellow-300 transition-opacity duration-150">
                       <span className={`${textColor} font-medium`}>
@@ -644,6 +811,9 @@ export default function SessionContent({ code }: SessionContentProps) {
         isOpen={isInviteModalOpen}
         onClose={() => setIsInviteModalOpen(false)}
       />
+
+      {/* Floating Bilingual Button */}
+      <FloatingBilingualButton />
     </div>
   );
 }

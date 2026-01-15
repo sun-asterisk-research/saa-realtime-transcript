@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { BilingualModeProvider } from '@/contexts/BilingualModeContext';
 
 export const metadata: Metadata = {
   title: 'Sun Asterisk Realtime Translation',
@@ -16,7 +17,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <BilingualModeProvider>{children}</BilingualModeProvider>
+      </body>
     </html>
   );
 }
