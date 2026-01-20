@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export function middleware(request: NextRequest) {
+  if (!process.env.BASIC_AUTH_USER || !process.env.BASIC_AUTH_PASSWORD) {
+    return NextResponse.next();
+  }
+
   const authHeader = request.headers.get('authorization');
 
   if (authHeader) {

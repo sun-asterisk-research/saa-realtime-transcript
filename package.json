@@ -2,11 +2,17 @@
   "name": "soniox-speech-to-text-nextjs-example",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@10.24.0",
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "sb:genTypes": "supabase gen types typescript --local > ./lib/supabase/types.ts",
+    "sb:push": "supabase db push",
+    "db:migrate": "supabase migration up",
+    "db:reset": "supabase db reset",
+    "migration:create": "supabase migration new"
   },
   "dependencies": {
     "@soniox/speech-to-text-web": "^1.3.0",
@@ -28,6 +34,7 @@
     "eslint": "^9",
     "eslint-config-next": "15.1.4",
     "postcss": "^8",
+    "supabase": "^2.72.8",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
   }
