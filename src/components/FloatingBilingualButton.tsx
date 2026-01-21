@@ -11,24 +11,22 @@ export function FloatingBilingualButton() {
       onClick={toggleBilingualMode}
       className={cn(
         'fixed bottom-4 right-4 z-50',
-        'w-14 h-14 rounded-full shadow-lg',
+        'w-14 h-14 rounded-full shadow-xl',
         'flex items-center justify-center',
-        'transition-all duration-200 hover:scale-110',
+        'transition-all duration-200 hover:scale-110 active:scale-95',
         'focus:outline-none focus:ring-2 focus:ring-offset-2',
         isBilingualMode
-          ? 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500 text-white'
-          : 'bg-gray-600 hover:bg-gray-700 focus:ring-gray-500 text-white'
+          ? 'bg-gradient-to-r from-plum-500 to-plum-700 hover:from-plum-600 hover:to-plum-800 focus:ring-plum-500 text-white shadow-primary'
+          : 'bg-gray-200 hover:bg-gray-300 focus:ring-gray-400 text-gray-600'
       )}
       title={isBilingualMode ? 'Disable Bilingual Display' : 'Enable Bilingual Display'}
-      aria-label="Toggle Bilingual Display"
-    >
+      aria-label="Toggle Bilingual Display">
       <svg
         xmlns="http://www.w3.org/2000/svg"
         className="h-6 w-6"
         fill="none"
         viewBox="0 0 24 24"
-        stroke="currentColor"
-      >
+        stroke="currentColor">
         <path
           strokeLinecap="round"
           strokeLinejoin="round"

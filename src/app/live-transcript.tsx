@@ -212,13 +212,17 @@ export default function LiveTranscript() {
   const translationTokens = allTokens.filter((token) => token.translation_status === 'translation');
 
   return (
-    <main className="flex flex-col min-h-screen">
+    <main className="flex flex-col min-h-screen bg-white">
       {/* Header */}
-      <header className="bg-primary text-white py-4 px-6">
-        <div className="flex items-center justify-between">
+      <header className="bg-gradient-to-r from-plum-600 to-plum-800 text-white py-4 px-6 shadow-lg">
+        <div className="flex items-center justify-between max-w-7xl mx-auto">
           <div>
-            <h1 className="text-2xl font-bold">Sun Asterisk</h1>
-            <p className="text-sm opacity-90">SAA 2025 Live Transcript</p>
+            <h1 className="text-2xl font-bold tracking-tight">Sun Asterisk</h1>
+            <p className="text-sm text-plum-200">SAA 2025 Live Transcript</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${isActiveState(state) ? 'bg-green-400 animate-pulse' : 'bg-white/40'}`} />
+            <span className="text-sm text-plum-100">{isActiveState(state) ? 'Live' : 'Ready'}</span>
           </div>
         </div>
       </header>
@@ -226,23 +230,29 @@ export default function LiveTranscript() {
       {/* Main content */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left panel - 30% */}
-        <div className="w-[30%] border-r border-gray-200 p-4 flex flex-col gap-4 bg-gray-50">
+        <div className="w-[30%] border-r border-plum-100 p-5 flex flex-col gap-5 bg-surface-light">
           {/* Video preview */}
-          <div className="aspect-video bg-black rounded-lg overflow-hidden">
+          <div className="aspect-video bg-plum-900 rounded-xl overflow-hidden shadow-lg">
             <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-cover" />
           </div>
 
           {/* Settings */}
-          <div className="flex flex-col gap-3">
-            <h3 className="font-semibold text-gray-700">Settings</h3>
+          <div className="flex flex-col gap-4">
+            <h3 className="font-semibold text-text-primary flex items-center gap-2">
+              <svg className="w-5 h-5 text-plum-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              Settings
+            </h3>
 
             {/* Camera select */}
             <div>
-              <label className="block text-sm text-gray-600 mb-1">Camera</label>
+              <label className="block text-sm text-text-secondary mb-1.5 font-medium">Camera</label>
               <select
                 value={selectedVideoDevice}
                 onChange={(e) => setSelectedVideoDevice(e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                className="w-full border border-plum-200 rounded-lg px-3 py-2.5 text-sm bg-white focus:border-plum-500 focus:ring-2 focus:ring-plum-500/20 focus:outline-none transition-all">
                 <option value="">Select camera...</option>
                 {videoDevices.map((device) => (
                   <option key={device.deviceId} value={device.deviceId}>
@@ -254,11 +264,11 @@ export default function LiveTranscript() {
 
             {/* Microphone select */}
             <div>
-              <label className="block text-sm text-gray-600 mb-1">Microphone</label>
+              <label className="block text-sm text-text-secondary mb-1.5 font-medium">Microphone</label>
               <select
                 value={selectedAudioDevice}
                 onChange={(e) => setSelectedAudioDevice(e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                className="w-full border border-plum-200 rounded-lg px-3 py-2.5 text-sm bg-white focus:border-plum-500 focus:ring-2 focus:ring-plum-500/20 focus:outline-none transition-all">
                 <option value="">Select microphone...</option>
                 {audioDevices.map((device) => (
                   <option key={device.deviceId} value={device.deviceId}>
@@ -270,12 +280,12 @@ export default function LiveTranscript() {
 
             {/* Target Language select */}
             <div>
-              <label className="block text-sm text-gray-600 mb-1">Target Language</label>
+              <label className="block text-sm text-text-secondary mb-1.5 font-medium">Target Language</label>
               <select
                 value={targetLanguage}
                 onChange={(e) => setTargetLanguage(e.target.value)}
                 disabled={isActiveState(state)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm disabled:bg-gray-100 disabled:cursor-not-allowed">
+                className="w-full border border-plum-200 rounded-lg px-3 py-2.5 text-sm bg-white focus:border-plum-500 focus:ring-2 focus:ring-plum-500/20 focus:outline-none transition-all disabled:bg-surface-muted disabled:cursor-not-allowed">
                 {TARGET_LANGUAGES.map((lang) => (
                   <option key={lang.code} value={lang.code}>
                     {lang.label}
@@ -288,14 +298,14 @@ export default function LiveTranscript() {
             <BilingualToggle />
 
             {/* Status */}
-            <div className="mt-2 p-3 bg-white rounded-md border border-gray-200">
-              <div className="flex items-center gap-2">
+            <div className="p-4 bg-white rounded-xl border border-plum-100 shadow-sm">
+              <div className="flex items-center gap-3">
                 <div
                   className={`w-3 h-3 rounded-full ${
-                    isActiveState(state) ? 'bg-green-500 animate-pulse' : 'bg-gray-400'
+                    isActiveState(state) ? 'bg-green-500 animate-pulse-glow' : 'bg-gray-300'
                   }`}
                 />
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-text-primary font-medium">
                   {state === 'Init' && 'Ready'}
                   {state === 'RequestingMedia' && 'Requesting media...'}
                   {state === 'OpeningWebSocket' && 'Connecting...'}
@@ -313,13 +323,17 @@ export default function LiveTranscript() {
               <Button
                 onClick={stopTranscription}
                 disabled={state === 'FinishingProcessing'}
-                className="w-full bg-gray-600 text-white hover:bg-gray-700 border-gray-600">
+                variant="secondary"
+                size="lg"
+                className="w-full">
                 Stop Transcription
               </Button>
             ) : (
               <Button
                 onClick={startTranscription}
-                className="w-full bg-primary text-white hover:bg-primary/90 border-primary">
+                variant="primary"
+                size="lg"
+                className="w-full">
                 Start Transcription
               </Button>
             )}
@@ -327,12 +341,17 @@ export default function LiveTranscript() {
 
           {/* Source Language Transcript */}
           <div className="flex-1 flex flex-col min-h-0">
-            <h3 className="font-semibold text-gray-700 mb-2">Source Language</h3>
+            <h3 className="font-semibold text-text-primary mb-3 flex items-center gap-2">
+              <svg className="w-5 h-5 text-plum-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+              </svg>
+              Source Language
+            </h3>
             <div
               ref={sourceRef}
-              className="flex-1 bg-white rounded-lg border border-gray-200 p-3 overflow-y-auto text-sm leading-relaxed">
+              className="flex-1 bg-white rounded-xl border border-plum-100 p-4 overflow-y-auto text-sm leading-relaxed shadow-sm custom-scrollbar">
               {transcriptionTokens.length === 0 ? (
-                <span className="text-gray-400">
+                <span className="text-text-light">
                   {isActiveState(state) ? 'Listening...' : 'Original speech will appear here'}
                 </span>
               ) : (
@@ -341,7 +360,7 @@ export default function LiveTranscript() {
                   return (
                     <span
                       key={idx}
-                      className={`${isStreaming ? 'text-primary font-bold text-[1.15em]' : 'text-gray-700'} transition-all duration-300`}>
+                      className={`${isStreaming ? 'text-plum-600 font-semibold' : 'text-text-primary'} transition-all duration-300`}>
                       {token.text}
                     </span>
                   );
@@ -354,17 +373,17 @@ export default function LiveTranscript() {
         {/* Right panel - 70% */}
         <div
           ref={transcriptRef}
-          className={`w-[70%] p-6 overflow-y-auto ${isFullscreen ? 'fixed inset-0 w-full z-50' : ''}`}
-          style={{ backgroundColor: '#092432' }}>
+          className={`w-[70%] p-6 overflow-y-auto custom-scrollbar-dark ${isFullscreen ? 'fixed inset-0 w-full z-50' : ''}`}
+          style={{ background: 'linear-gradient(135deg, #7f1d1d 0%, #6b1a1a 50%, #450a0a 100%)' }}>
           {/* Fullscreen button */}
           <button
             onClick={toggleFullscreen}
-            className="fixed top-4 right-4 z-10 bg-gray-800 text-white p-2 rounded-lg hover:bg-gray-700 transition-colors"
+            className="fixed top-4 right-4 z-10 bg-white/10 backdrop-blur-sm text-white p-3 rounded-xl hover:bg-white/20 transition-all shadow-lg"
             title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}>
             {isFullscreen ? (
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6"
+                className="h-5 w-5"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor">
@@ -378,7 +397,7 @@ export default function LiveTranscript() {
             ) : (
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6"
+                className="h-5 w-5"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor">
@@ -396,7 +415,10 @@ export default function LiveTranscript() {
           {isBilingualMode ? (
             <div className={`h-full overflow-y-auto ${isFullscreen ? 'pt-16 px-8' : 'px-4'}`}>
               {!isFullscreen && (
-                <h2 className="text-xl font-semibold text-white mb-4">
+                <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
+                  <svg className="w-6 h-6 text-plum-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
                   Bilingual Transcription
                 </h2>
               )}
@@ -410,13 +432,16 @@ export default function LiveTranscript() {
           ) : (
             <div className={`flex flex-col items-center justify-center h-full ${isFullscreen ? 'pt-16 px-8' : ''}`}>
               {!isFullscreen && (
-                <h2 className="text-xl font-semibold text-white mb-4">
+                <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
+                  <svg className="w-6 h-6 text-plum-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                  </svg>
                   Target Language ({targetLanguageLabel})
                 </h2>
               )}
               {translationTokens.length === 0 ? (
                 <div
-                  className="flex items-center justify-center text-white/50"
+                  className="flex items-center justify-center text-white/40"
                   style={{ fontSize: 'var(--text-placeholder)' }}>
                   {isActiveState(state) ? 'Listening...' : 'Click "Start" to begin transcription'}
                 </div>
@@ -432,7 +457,7 @@ export default function LiveTranscript() {
                         key={idx}
                         className={`${
                           isStreaming
-                            ? 'text-primary'
+                            ? 'text-plum-300'
                             : 'text-white'
                         }`}>
                         {token.text}
@@ -448,7 +473,10 @@ export default function LiveTranscript() {
 
       {/* Error display */}
       {state === 'Error' && (
-        <div className="fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg">
+        <div className="fixed bottom-4 right-4 bg-red-500 text-white px-5 py-3 rounded-xl shadow-xl flex items-center gap-3 animate-slideUp">
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
           Error occurred. Please try again.
         </div>
       )}

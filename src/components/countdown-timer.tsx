@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { cn } from '@/lib/utils';
 
 interface CountdownTimerProps {
   targetTime: string; // ISO timestamp
@@ -19,7 +20,7 @@ export function CountdownTimer({ targetTime, onComplete, className }: CountdownT
       const diff = target - now;
 
       if (diff <= 0) {
-        setTimeLeft('Session is starting now!');
+        setTimeLeft('Starting now!');
         if (!isComplete) {
           setIsComplete(true);
           onComplete?.();
@@ -61,8 +62,14 @@ export function CountdownTimer({ targetTime, onComplete, className }: CountdownT
   }, [targetTime, onComplete, isComplete]);
 
   return (
-    <div className={className}>
-      <span className={isComplete ? 'text-green-400 font-semibold' : 'text-slate-300'}>{timeLeft}</span>
+    <div className={cn('inline-flex items-center', className)}>
+      <span
+        className={cn(
+          'font-mono font-semibold tabular-nums transition-colors',
+          isComplete ? 'text-emerald-600' : 'text-plum-600'
+        )}>
+        {timeLeft}
+      </span>
     </div>
   );
 }

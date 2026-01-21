@@ -102,9 +102,6 @@ export function ContextSetFormModal({ isOpen, onClose, onSubmit, contextSet, use
     }
   };
 
-  /**
-   * Loads the JSON template into the textarea
-   */
   const handleLoadTemplate = () => {
     const template = generateContextSetTemplate();
     setImportJson(template);
@@ -112,9 +109,6 @@ export function ContextSetFormModal({ isOpen, onClose, onSubmit, contextSet, use
     setImportSuccess(false);
   };
 
-  /**
-   * Copies JSON template to clipboard
-   */
   const handleCopyTemplate = async () => {
     const template = generateContextSetTemplate();
     try {
@@ -125,9 +119,6 @@ export function ContextSetFormModal({ isOpen, onClose, onSubmit, contextSet, use
     }
   };
 
-  /**
-   * Generates and copies ChatGPT prompt to clipboard
-   */
   const handleCopyChatGPTPrompt = async () => {
     const prompt = generateChatGPTPrompt();
     try {
@@ -138,9 +129,6 @@ export function ContextSetFormModal({ isOpen, onClose, onSubmit, contextSet, use
     }
   };
 
-  /**
-   * Validates and imports JSON, populating all form fields
-   */
   const handleImportJson = () => {
     setImportError('');
     setImportSuccess(false);
@@ -152,18 +140,15 @@ export function ContextSetFormModal({ isOpen, onClose, onSubmit, contextSet, use
       return;
     }
 
-    // Show warnings if any
     if (result.warnings.length > 0) {
       console.warn('Import warnings:', result.warnings);
     }
 
-    // Populate all form fields
     const data = result.data!;
     setName(data.name);
     setDescription(data.description || '');
     setIsPublic(data.is_public);
 
-    // Ensure at least one empty field for arrays
     setTerms(data.terms.length > 0 ? data.terms : ['']);
     setGeneral(data.general.length > 0 ? data.general : [{ key: '', value: '' }]);
     setTranslationTerms(data.translation_terms.length > 0 ? data.translation_terms : [{ source: '', target: '' }]);
@@ -171,15 +156,11 @@ export function ContextSetFormModal({ isOpen, onClose, onSubmit, contextSet, use
 
     setImportSuccess(true);
 
-    // Auto-switch to Basic tab so user can review
     setTimeout(() => {
       setActiveTab('basic');
     }, 1500);
   };
 
-  /**
-   * Exports current form data as JSON
-   */
   const handleExportJson = async () => {
     const formData: ContextSetFormData = {
       name: name.trim() || 'Untitled Context Set',
@@ -197,7 +178,6 @@ export function ContextSetFormModal({ isOpen, onClose, onSubmit, contextSet, use
       await navigator.clipboard.writeText(jsonString);
       alert('JSON copied to clipboard!');
     } catch (err) {
-      // Fallback: create download link
       const blob = new Blob([jsonString], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -210,37 +190,57 @@ export function ContextSetFormModal({ isOpen, onClose, onSubmit, contextSet, use
 
   if (!isOpen) return null;
 
+  const tabs = [
+    { id: 'basic' as TabType, label: 'Basic', icon: 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z' },
+    { id: 'terms' as TabType, label: 'Terms', icon: 'M7 20l4-16m2 16l4-16M6 9h14M4 15h14' },
+    { id: 'general' as TabType, label: 'Metadata', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2' },
+    { id: 'translation' as TabType, label: 'Translations', icon: 'M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129' },
+    { id: 'text' as TabType, label: 'Text', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
+    { id: 'import' as TabType, label: 'Import', icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12' },
+  ];
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-800 rounded-lg border border-slate-700 w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col animate-scaleIn border border-plum-100">
         {/* Header */}
-        <div className="p-6 border-b border-slate-700">
+        <div className="px-6 py-5 border-b border-gray-100">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-white">{contextSet ? 'Edit Context Set' : 'Create Context Set'}</h2>
-            <button onClick={onClose} className="text-slate-400 hover:text-white text-2xl leading-none" disabled={isSubmitting}>
-              &times;
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-plum-500 to-plum-700 rounded-xl flex items-center justify-center shadow-lg shadow-plum-500/20">
+                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={contextSet ? 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z' : 'M12 4v16m8-8H4'} />
+                </svg>
+              </div>
+              <h2 className="text-xl font-bold text-text-primary">{contextSet ? 'Edit Context Set' : 'Create Context Set'}</h2>
+            </div>
+            <button
+              onClick={onClose}
+              disabled={isSubmitting}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-text-muted hover:text-text-primary hover:bg-gray-100 transition-colors cursor-pointer"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
             </button>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-slate-700 px-6">
-          {[
-            { id: 'basic' as TabType, label: 'Basic' },
-            { id: 'terms' as TabType, label: 'Terms' },
-            { id: 'general' as TabType, label: 'Metadata' },
-            { id: 'translation' as TabType, label: 'Translations' },
-            { id: 'text' as TabType, label: 'Text' },
-            { id: 'import' as TabType, label: 'Import JSON' },
-          ].map((tab) => (
+        <div className="flex border-b border-gray-100 px-6 bg-surface-muted/30 overflow-x-auto">
+          {tabs.map((tab) => (
             <button
               key={tab.id}
+              type="button"
               onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap cursor-pointer ${
                 activeTab === tab.id
-                  ? 'border-blue-500 text-white'
-                  : 'border-transparent text-slate-400 hover:text-white'
-              }`}>
+                  ? 'border-plum-500 text-plum-600'
+                  : 'border-transparent text-text-muted hover:text-text-primary'
+              }`}
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={tab.icon} />
+              </svg>
               {tab.label}
             </button>
           ))}
@@ -253,8 +253,8 @@ export function ContextSetFormModal({ isOpen, onClose, onSubmit, contextSet, use
             {activeTab === 'basic' && (
               <>
                 <div>
-                  <label className="block text-slate-300 mb-2">
-                    Name <span className="text-red-400">*</span>
+                  <label className="block text-text-primary font-medium mb-2">
+                    Name <span className="text-plum-500">*</span>
                   </label>
                   <Input
                     value={name}
@@ -262,36 +262,49 @@ export function ContextSetFormModal({ isOpen, onClose, onSubmit, contextSet, use
                     placeholder="e.g., Medical Terms, Technology Vocabulary"
                     maxLength={100}
                     required
-                    className="text-white"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-slate-300 mb-2">Description</label>
+                  <label className="block text-text-primary font-medium mb-2">Description</label>
                   <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="Brief description of what this context set contains"
-                    className="flex w-full rounded-md border border-primary text-white bg-transparent px-3 py-2 text-base shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50 md:text-sm min-h-[80px]"
+                    className="w-full px-4 py-3 bg-white border-2 border-plum-200 rounded-xl text-text-primary placeholder:text-text-muted min-h-[100px] resize-y focus:border-plum-500 focus:ring-2 focus:ring-plum-500/20 focus:outline-none transition-all"
                     maxLength={500}
                   />
                 </div>
 
-                <div>
-                  <label className="flex items-center gap-2 text-slate-300 cursor-pointer">
-                    <input type="checkbox" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} className="rounded" />
-                    <span>Make this context set public</span>
+                <div className="bg-surface-muted rounded-xl p-4">
+                  <label className="flex items-center gap-3 cursor-pointer select-none">
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        checked={isPublic}
+                        onChange={(e) => setIsPublic(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-5 h-5 border-2 border-gray-300 rounded-md peer-checked:border-plum-500 peer-checked:bg-plum-500 transition-colors flex items-center justify-center">
+                        <svg className="w-3 h-3 text-white opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-text-primary font-medium">Make this context set public</span>
+                      <p className="text-text-muted text-sm">Public context sets can be used by anyone</p>
+                    </div>
                   </label>
-                  <p className="text-slate-500 text-sm mt-1">Public context sets can be used by anyone</p>
                 </div>
 
-                <div className="pt-4 border-t border-slate-700">
-                  <label className="block text-slate-300 mb-2">Export Current Data</label>
-                  <p className="text-slate-500 text-sm mb-2">Export the current form data as JSON (useful for backups or sharing)</p>
-                  <Button
-                    type="button"
-                    onClick={handleExportJson}
-                    className="text-sm h-8 bg-slate-700 border-slate-600 text-white hover:bg-slate-600">
+                <div className="pt-4 border-t border-gray-100">
+                  <label className="block text-text-primary font-medium mb-2">Export Current Data</label>
+                  <p className="text-text-muted text-sm mb-3">Export the current form data as JSON (useful for backups or sharing)</p>
+                  <Button type="button" onClick={handleExportJson} variant="outline" size="sm">
+                    <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
                     Export as JSON
                   </Button>
                 </div>
@@ -302,15 +315,17 @@ export function ContextSetFormModal({ isOpen, onClose, onSubmit, contextSet, use
             {activeTab === 'terms' && (
               <>
                 <div className="flex items-center justify-between">
-                  <label className="block text-slate-300">Terms (Keywords)</label>
-                  <Button
-                    type="button"
-                    onClick={() => setTerms([...terms, ''])}
-                    className="text-sm h-8 bg-blue-600 border-blue-600 text-white hover:bg-blue-700">
+                  <div>
+                    <h3 className="text-text-primary font-medium">Terms (Keywords)</h3>
+                    <p className="text-text-muted text-sm">Add domain-specific terms, names, or keywords (max 500)</p>
+                  </div>
+                  <Button type="button" onClick={() => setTerms([...terms, ''])} variant="primary" size="sm">
+                    <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
                     Add Term
                   </Button>
                 </div>
-                <p className="text-slate-500 text-sm -mt-4">Add domain-specific terms, names, or keywords (max 500)</p>
 
                 <div className="space-y-2 max-h-96 overflow-y-auto">
                   {terms.map((term, index) => (
@@ -324,15 +339,18 @@ export function ContextSetFormModal({ isOpen, onClose, onSubmit, contextSet, use
                         }}
                         placeholder={`Term ${index + 1}`}
                         maxLength={200}
-                        className="text-white flex-1"
+                        className="flex-1"
                       />
                       {terms.length > 1 && (
-                        <Button
+                        <button
                           type="button"
                           onClick={() => setTerms(terms.filter((_, i) => i !== index))}
-                          className="h-10 px-3 bg-red-900/20 border-red-900/50 text-red-400 hover:bg-red-900/30">
-                          &times;
-                        </Button>
+                          className="h-10 w-10 flex items-center justify-center rounded-lg bg-red-50 border border-red-200 text-red-500 hover:bg-red-100 transition-colors cursor-pointer"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
                       )}
                     </div>
                   ))}
@@ -344,17 +362,17 @@ export function ContextSetFormModal({ isOpen, onClose, onSubmit, contextSet, use
             {activeTab === 'general' && (
               <>
                 <div className="flex items-center justify-between">
-                  <label className="block text-slate-300">General Metadata (Key-Value Pairs)</label>
-                  <Button
-                    type="button"
-                    onClick={() => setGeneral([...general, { key: '', value: '' }])}
-                    className="text-sm h-8 bg-blue-600 border-blue-600 text-white hover:bg-blue-700">
+                  <div>
+                    <h3 className="text-text-primary font-medium">General Metadata (Key-Value Pairs)</h3>
+                    <p className="text-text-muted text-sm">Add contextual information (e.g., domain: Technology)</p>
+                  </div>
+                  <Button type="button" onClick={() => setGeneral([...general, { key: '', value: '' }])} variant="primary" size="sm">
+                    <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
                     Add Metadata
                   </Button>
                 </div>
-                <p className="text-slate-500 text-sm -mt-4">
-                  Add contextual information (e.g., domain: Technology, topic: Cloud Computing)
-                </p>
 
                 <div className="space-y-3 max-h-96 overflow-y-auto">
                   {general.map((item, index) => (
@@ -367,7 +385,7 @@ export function ContextSetFormModal({ isOpen, onClose, onSubmit, contextSet, use
                           setGeneral(newGeneral);
                         }}
                         placeholder="Key"
-                        className="text-white flex-1"
+                        className="flex-1"
                       />
                       <Input
                         value={item.value}
@@ -377,15 +395,18 @@ export function ContextSetFormModal({ isOpen, onClose, onSubmit, contextSet, use
                           setGeneral(newGeneral);
                         }}
                         placeholder="Value"
-                        className="text-white flex-1"
+                        className="flex-1"
                       />
                       {general.length > 1 && (
-                        <Button
+                        <button
                           type="button"
                           onClick={() => setGeneral(general.filter((_, i) => i !== index))}
-                          className="h-10 px-3 bg-red-900/20 border-red-900/50 text-red-400 hover:bg-red-900/30">
-                          &times;
-                        </Button>
+                          className="h-10 w-10 flex items-center justify-center rounded-lg bg-red-50 border border-red-200 text-red-500 hover:bg-red-100 transition-colors cursor-pointer"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
                       )}
                     </div>
                   ))}
@@ -397,19 +418,21 @@ export function ContextSetFormModal({ isOpen, onClose, onSubmit, contextSet, use
             {activeTab === 'translation' && (
               <>
                 <div className="flex items-center justify-between">
-                  <label className="block text-slate-300">Translation Terms</label>
-                  <Button
-                    type="button"
-                    onClick={() => setTranslationTerms([...translationTerms, { source: '', target: '' }])}
-                    className="text-sm h-8 bg-blue-600 border-blue-600 text-white hover:bg-blue-700">
+                  <div>
+                    <h3 className="text-text-primary font-medium">Translation Terms</h3>
+                    <p className="text-text-muted text-sm">Force specific translations for certain terms (max 500)</p>
+                  </div>
+                  <Button type="button" onClick={() => setTranslationTerms([...translationTerms, { source: '', target: '' }])} variant="primary" size="sm">
+                    <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
                     Add Translation
                   </Button>
                 </div>
-                <p className="text-slate-500 text-sm -mt-4">Force specific translations for certain terms (max 500)</p>
 
                 <div className="space-y-3 max-h-96 overflow-y-auto">
                   {translationTerms.map((item, index) => (
-                    <div key={index} className="flex gap-2">
+                    <div key={index} className="flex gap-2 items-center">
                       <Input
                         value={item.source}
                         onChange={(e) => {
@@ -418,8 +441,11 @@ export function ContextSetFormModal({ isOpen, onClose, onSubmit, contextSet, use
                           setTranslationTerms(newTranslationTerms);
                         }}
                         placeholder="Source (original)"
-                        className="text-white flex-1"
+                        className="flex-1"
                       />
+                      <svg className="w-5 h-5 text-text-muted flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                      </svg>
                       <Input
                         value={item.target}
                         onChange={(e) => {
@@ -428,15 +454,18 @@ export function ContextSetFormModal({ isOpen, onClose, onSubmit, contextSet, use
                           setTranslationTerms(newTranslationTerms);
                         }}
                         placeholder="Target (translation)"
-                        className="text-white flex-1"
+                        className="flex-1"
                       />
                       {translationTerms.length > 1 && (
-                        <Button
+                        <button
                           type="button"
                           onClick={() => setTranslationTerms(translationTerms.filter((_, i) => i !== index))}
-                          className="h-10 px-3 bg-red-900/20 border-red-900/50 text-red-400 hover:bg-red-900/30">
-                          &times;
-                        </Button>
+                          className="h-10 w-10 flex items-center justify-center rounded-lg bg-red-50 border border-red-200 text-red-500 hover:bg-red-100 transition-colors cursor-pointer"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
                       )}
                     </div>
                   ))}
@@ -446,113 +475,132 @@ export function ContextSetFormModal({ isOpen, onClose, onSubmit, contextSet, use
 
             {/* Text Tab */}
             {activeTab === 'text' && (
-              <>
-                <div>
-                  <label className="block text-slate-300 mb-2">Context Text</label>
-                  <p className="text-slate-500 text-sm mb-2">
-                    Add longer context information, examples, or relevant text (max 10,000 characters)
-                  </p>
-                  <textarea
-                    value={text}
-                    onChange={(e) => setText(e.target.value)}
-                    placeholder="Enter contextual text, examples, or additional information..."
-                    className="flex w-full rounded-md border border-primary text-white bg-transparent px-3 py-2 text-base shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50 md:text-sm min-h-[300px] font-mono text-sm"
-                    maxLength={10000}
-                  />
-                  <div className="text-slate-500 text-xs mt-1 text-right">{text.length} / 10,000 characters</div>
-                </div>
-              </>
+              <div>
+                <label className="block text-text-primary font-medium mb-2">Context Text</label>
+                <p className="text-text-muted text-sm mb-3">
+                  Add longer context information, examples, or relevant text (max 10,000 characters)
+                </p>
+                <textarea
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  placeholder="Enter contextual text, examples, or additional information..."
+                  className="w-full px-4 py-3 bg-white border-2 border-plum-200 rounded-xl text-text-primary placeholder:text-text-muted min-h-[300px] resize-y focus:border-plum-500 focus:ring-2 focus:ring-plum-500/20 focus:outline-none transition-all font-mono text-sm"
+                  maxLength={10000}
+                />
+                <div className="text-text-muted text-xs mt-2 text-right">{text.length} / 10,000 characters</div>
+              </div>
             )}
 
             {/* Import JSON Tab */}
             {activeTab === 'import' && (
-              <>
-                <div>
-                  <label className="block text-slate-300 mb-2">Import Context Set from JSON</label>
-                  <p className="text-slate-500 text-sm mb-3">
-                    Paste JSON data below to auto-populate all tabs. You can review and modify before saving.
-                  </p>
+              <div>
+                <label className="block text-text-primary font-medium mb-2">Import Context Set from JSON</label>
+                <p className="text-text-muted text-sm mb-4">
+                  Paste JSON data below to auto-populate all tabs. You can review and modify before saving.
+                </p>
 
-                  {/* Template section */}
-                  <div className="mb-4 flex gap-2 flex-wrap">
-                    <Button
-                      type="button"
-                      onClick={handleLoadTemplate}
-                      className="text-sm h-8 bg-slate-700 border-slate-600 text-white hover:bg-slate-600">
-                      Load Template
-                    </Button>
-                    <Button
-                      type="button"
-                      onClick={handleCopyTemplate}
-                      className="text-sm h-8 bg-slate-700 border-slate-600 text-white hover:bg-slate-600">
-                      Copy Template to Clipboard
-                    </Button>
-                    <Button
-                      type="button"
-                      onClick={handleCopyChatGPTPrompt}
-                      className="text-sm h-8 bg-blue-600 border-blue-600 text-white hover:bg-blue-700">
-                      Generate ChatGPT Prompt
-                    </Button>
-                  </div>
-
-                  {/* JSON editor textarea */}
-                  <textarea
-                    value={importJson}
-                    onChange={(e) => {
-                      setImportJson(e.target.value);
-                      setImportError('');
-                      setImportSuccess(false);
-                    }}
-                    placeholder="Paste JSON here or click 'Load Template' to see the structure..."
-                    className="flex w-full rounded-md border border-primary text-white bg-slate-900 px-3 py-2 text-base shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50 md:text-sm min-h-[400px] font-mono text-xs"
-                    spellCheck={false}
-                  />
-
-                  {/* Character count */}
-                  <div className="text-slate-500 text-xs mt-1 text-right">{importJson.length} characters</div>
-
-                  {/* Import error */}
-                  {importError && (
-                    <div className="mt-3 p-3 bg-red-900/20 border border-red-900/50 rounded text-red-400 text-sm whitespace-pre-wrap">
-                      {importError}
-                    </div>
-                  )}
-
-                  {/* Import success */}
-                  {importSuccess && (
-                    <div className="mt-3 p-3 bg-green-900/20 border border-green-900/50 rounded text-green-400 text-sm">
-                      ✓ JSON imported successfully! Review the other tabs and click Create/Update to save.
-                    </div>
-                  )}
-
-                  {/* Import button */}
-                  <div className="mt-4">
-                    <Button
-                      type="button"
-                      onClick={handleImportJson}
-                      disabled={!importJson.trim()}
-                      className="px-6 bg-blue-600 border-blue-600 text-white hover:bg-blue-700">
-                      Import and Populate Form
-                    </Button>
-                  </div>
+                {/* Template section */}
+                <div className="mb-4 flex gap-2 flex-wrap">
+                  <Button type="button" onClick={handleLoadTemplate} variant="outline" size="sm">
+                    <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                    Load Template
+                  </Button>
+                  <Button type="button" onClick={handleCopyTemplate} variant="outline" size="sm">
+                    <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    Copy Template
+                  </Button>
+                  <Button type="button" onClick={handleCopyChatGPTPrompt} variant="primary" size="sm">
+                    <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    ChatGPT Prompt
+                  </Button>
                 </div>
-              </>
+
+                {/* JSON editor textarea */}
+                <textarea
+                  value={importJson}
+                  onChange={(e) => {
+                    setImportJson(e.target.value);
+                    setImportError('');
+                    setImportSuccess(false);
+                  }}
+                  placeholder="Paste JSON here or click 'Load Template' to see the structure..."
+                  className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-text-primary placeholder:text-text-muted min-h-[350px] resize-y focus:border-plum-500 focus:ring-2 focus:ring-plum-500/20 focus:outline-none transition-all font-mono text-xs"
+                  spellCheck={false}
+                />
+
+                <div className="text-text-muted text-xs mt-2 text-right">{importJson.length} characters</div>
+
+                {importError && (
+                  <div className="mt-3 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm whitespace-pre-wrap flex items-start gap-3">
+                    <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <span>{importError}</span>
+                  </div>
+                )}
+
+                {importSuccess && (
+                  <div className="mt-3 p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-600 text-sm flex items-start gap-3">
+                    <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>JSON imported successfully! Review the other tabs and click Create/Update to save.</span>
+                  </div>
+                )}
+
+                <div className="mt-4">
+                  <Button
+                    type="button"
+                    onClick={handleImportJson}
+                    disabled={!importJson.trim()}
+                    variant="primary"
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                    Import and Populate Form
+                  </Button>
+                </div>
+              </div>
             )}
           </div>
 
           {/* Footer */}
-          <div className="p-6 border-t border-slate-700 bg-slate-900/50">
-            {error && <div className="text-red-400 text-sm mb-4">{error}</div>}
+          <div className="px-6 py-4 border-t border-gray-100 bg-surface-muted/30">
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm flex items-center gap-2">
+                <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                {error}
+              </div>
+            )}
 
             <div className="flex gap-3 justify-end">
-              <Button type="button" onClick={onClose} disabled={isSubmitting} className="px-6">
+              <Button type="button" onClick={onClose} disabled={isSubmitting} variant="outline">
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={isSubmitting || !name.trim()}
-                className="px-6 bg-blue-600 border-blue-600 text-white hover:bg-blue-700">
-                {isSubmitting ? 'Saving...' : contextSet ? 'Update' : 'Create'}
+                variant="primary"
+              >
+                {isSubmitting ? (
+                  <span className="flex items-center gap-2">
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Saving...
+                  </span>
+                ) : contextSet ? (
+                  'Update'
+                ) : (
+                  'Create'
+                )}
               </Button>
             </div>
           </div>

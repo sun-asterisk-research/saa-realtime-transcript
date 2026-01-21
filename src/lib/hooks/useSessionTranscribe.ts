@@ -49,6 +49,8 @@ export function useSessionTranscribe({
   const lastBroadcastRef = useRef<string>('');
   const pendingFinalTokensRef = useRef<Token[]>([]);
   const pendingOriginalRef = useRef<PendingTranscript | null>(null);
+  const pendingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hasTimedOutRef = useRef<boolean>(false);
 
   const { startTranscription, stopTranscription, state, finalTokens, nonFinalTokens, error } = useTranscribe({
     apiKey: getAPIKey,
@@ -56,6 +58,27 @@ export function useSessionTranscribe({
     context,
     enableSpeakerDiarization,
   });
+
+  // Function to update transcript translation via PATCH API
+  const updateTranscriptTranslation = useCallback(
+    async (data: {
+      participantId: string;
+      originalText: string;
+      translatedText: string;
+      targetLanguage?: string;
+    }) => {
+      try {
+        await fetch(`/api/sessions/${sessionCode}/transcripts`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+      } catch (err) {
+        console.error('Failed to update translation:', err);
+      }
+    },
+    [sessionCode]
+  );
 
   // Handle non-final tokens - broadcast for streaming display
   useEffect(() => {
@@ -152,6 +175,11 @@ export function useSessionTranscribe({
       );
 
       if (needsTranslation) {
+        // Clear any existing timeout
+        if (pendingTimeoutRef.current) {
+          clearTimeout(pendingTimeoutRef.current);
+        }
+
         // Buffer this original, wait for translation batch
         pendingOriginalRef.current = {
           originalText,
@@ -159,6 +187,29 @@ export function useSessionTranscribe({
           speakerId,
           timestamp: Date.now(),
         };
+
+        // Set 3-second timeout to save original without translation
+        pendingTimeoutRef.current = setTimeout(() => {
+          console.warn('Translation timeout - saving original only');
+
+          // Mark that we've timed out
+          hasTimedOutRef.current = true;
+
+          // Save original without translation
+          if (onFinalTranscript) {
+            onFinalTranscript({
+              originalText,
+              translatedText: undefined,
+              sourceLanguage,
+              targetLanguage,
+              speakerId,
+            });
+          }
+
+          // Keep pendingOriginalRef for late translation update
+          pendingTimeoutRef.current = null;
+        }, 3000); // 3 seconds
+
         return; // Don't save yet
       } else {
         // No translation needed (speaking target language), save directly
@@ -177,15 +228,38 @@ export function useSessionTranscribe({
     else if (!originalText && translatedText) {
       const pending = pendingOriginalRef.current;
 
-      if (onFinalTranscript) {
-        onFinalTranscript({
-          originalText: pending?.originalText || translatedText,
-          translatedText,
-          sourceLanguage: pending?.sourceLanguage,
-          targetLanguage,
-          speakerId: pending?.speakerId,
-        });
+      // Clear timeout if still pending
+      if (pendingTimeoutRef.current) {
+        clearTimeout(pendingTimeoutRef.current);
+        pendingTimeoutRef.current = null;
       }
+
+      // Check if we already saved original due to timeout
+      if (hasTimedOutRef.current) {
+        // Translation arrived late - update existing record via PATCH
+        console.log('Late translation arrived - updating existing transcript');
+        updateTranscriptTranslation({
+          participantId,
+          originalText: pending?.originalText || '',
+          translatedText,
+          targetLanguage,
+        }); // Fire-and-forget, UPDATE event will trigger UI refresh
+
+        // Reset flag
+        hasTimedOutRef.current = false;
+      } else {
+        // Normal flow - save together
+        if (onFinalTranscript) {
+          onFinalTranscript({
+            originalText: pending?.originalText || translatedText,
+            translatedText,
+            sourceLanguage: pending?.sourceLanguage,
+            targetLanguage,
+            speakerId: pending?.speakerId,
+          });
+        }
+      }
+
       pendingOriginalRef.current = null;
     }
     // Case 3: We have BOTH original and translation in same batch
@@ -206,10 +280,21 @@ export function useSessionTranscribe({
     pendingFinalTokensRef.current = [];
     lastBroadcastRef.current = '';
     pendingOriginalRef.current = null;
+    hasTimedOutRef.current = false;
+    if (pendingTimeoutRef.current) {
+      clearTimeout(pendingTimeoutRef.current);
+      pendingTimeoutRef.current = null;
+    }
     startTranscription();
   }, [startTranscription]);
 
   const stop = useCallback(() => {
+    if (pendingTimeoutRef.current) {
+      clearTimeout(pendingTimeoutRef.current);
+      pendingTimeoutRef.current = null;
+    }
+    hasTimedOutRef.current = false;
+    pendingOriginalRef.current = null;
     stopTranscription();
   }, [stopTranscription]);
 

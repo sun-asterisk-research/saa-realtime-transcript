@@ -157,252 +157,308 @@ export default function CreateSession() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-slate-900 to-slate-800 p-4">
-      <div className="w-full max-w-md">
-        <Link href="/" className="text-slate-400 hover:text-white mb-8 inline-block">
-          &larr; Back
-        </Link>
+    <div className="min-h-screen bg-white relative overflow-hidden">
+      {/* Decorative Blobs */}
+      <div className="absolute top-0 left-0 w-80 h-80 bg-gradient-to-br from-plum-400 to-plum-600 blob opacity-60 -translate-x-1/3 -translate-y-1/3" />
+      <div className="absolute top-1/3 right-0 w-64 h-64 bg-plum-300 blob-2 opacity-40 translate-x-1/3" />
+      <div className="absolute bottom-0 left-1/4 w-72 h-72 bg-gradient-to-tr from-plum-500 to-plum-700 blob-3 opacity-30 translate-y-1/3" />
 
-        <h1 className="text-3xl font-bold text-white mb-8">Create Session</h1>
+      <div className="relative z-10 min-h-screen flex flex-col items-center py-8 px-4">
+        <div className="w-full max-w-lg">
+          {/* Back Link */}
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-plum-600 hover:text-plum-700 mb-6 text-sm font-medium transition-colors">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back
+          </Link>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Session Title */}
-          <div>
-            <label className="block text-slate-300 mb-2">
-              Session Title <span className="text-red-400">*</span>
-            </label>
-            <Input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g., Internal meeting with SONY client"
-              required
-              className="text-white"
-            />
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-text-primary mb-2">Create Session</h1>
+            <p className="text-text-muted">Set up a new translation session for your meeting</p>
           </div>
 
-          {/* Description */}
-          <div>
-            <label className="block text-slate-300 mb-2">Description (Optional)</label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Add notes about this session..."
-              className="w-full px-3 py-2 bg-transparent border border-primary rounded-md text-white placeholder:text-slate-400 min-h-[80px] resize-y"
-              rows={3}
-            />
-          </div>
-
-          {/* Your Name */}
-          <div>
-            <label className="block text-slate-300 mb-2">Your Name</label>
-            <Input
-              value={hostName}
-              onChange={(e) => setHostName(e.target.value)}
-              placeholder="Enter your name"
-              required
-              className="text-white"
-            />
-          </div>
-
-          {/* Translation Mode */}
-          <div>
-            <label className="block text-slate-300 mb-2">Translation Mode</label>
-            <Select value={mode} onChange={(e) => setMode(e.target.value as TranslationMode)} className="text-white">
-              <option value="one_way">One-way Translation</option>
-              <option value="two_way">Two-way Translation</option>
-            </Select>
-            <p className="text-slate-500 text-sm mt-1">
-              {mode === 'one_way'
-                ? 'All speech will be translated to a single target language'
-                : 'Speech is translated between two languages automatically'}
-            </p>
-          </div>
-
-          {mode === 'one_way' ? (
-            <div>
-              <label className="block text-slate-300 mb-2">Target Language</label>
-              <Select
-                value={targetLanguage}
-                onChange={(e) => setTargetLanguage(e.target.value)}
-                className="text-white">
-                {LANGUAGE_PAIRS.one_way.map((lang) => (
-                  <option key={lang.target} value={lang.target}>
-                    {lang.label}
-                  </option>
-                ))}
-              </Select>
-            </div>
-          ) : (
-            <>
+          {/* Form Card */}
+          <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl border border-plum-100 p-6 md:p-8">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Session Title */}
               <div>
-                <label className="block text-slate-300 mb-2">Language Pair</label>
-                <Select
-                  value={languagePair}
-                  onChange={(e) => {
-                    setLanguagePair(Number(e.target.value));
-                    setPreferredLanguage(''); // Reset preference when pair changes
-                  }}
-                  className="text-white">
-                  {LANGUAGE_PAIRS.two_way.map((pair, index) => (
-                    <option key={index} value={index}>
-                      {pair.label}
-                    </option>
-                  ))}
-                </Select>
+                <label className="block text-text-primary font-medium mb-2">
+                  Session Title <span className="text-plum-500">*</span>
+                </label>
+                <Input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="e.g., Internal meeting with SONY client"
+                  required
+                />
               </div>
+
+              {/* Description */}
               <div>
-                <label className="block text-slate-300 mb-2">Your Display Language</label>
-                <Select
-                  value={preferredLanguage || currentPair.a}
-                  onChange={(e) => setPreferredLanguage(e.target.value)}
-                  className="text-white">
-                  <option value={currentPair.a}>{currentPair.a.toUpperCase()}</option>
-                  <option value={currentPair.b}>{currentPair.b.toUpperCase()}</option>
+                <label className="block text-text-primary font-medium mb-2">Description (Optional)</label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Add notes about this session..."
+                  className="w-full px-4 py-2.5 bg-white border border-plum-200 rounded-lg text-text-primary placeholder:text-text-light min-h-[100px] resize-y focus:border-plum-500 focus:ring-2 focus:ring-plum-500/20 focus:outline-none transition-all"
+                  rows={3}
+                />
+              </div>
+
+              {/* Your Name */}
+              <div>
+                <label className="block text-text-primary font-medium mb-2">Your Name</label>
+                <Input
+                  value={hostName}
+                  onChange={(e) => setHostName(e.target.value)}
+                  placeholder="Enter your name"
+                  required
+                />
+              </div>
+
+              {/* Translation Mode */}
+              <div>
+                <label className="block text-text-primary font-medium mb-2">Translation Mode</label>
+                <Select value={mode} onChange={(e) => setMode(e.target.value as TranslationMode)}>
+                  <option value="one_way">One-way Translation</option>
+                  <option value="two_way">Two-way Translation</option>
                 </Select>
-                <p className="text-slate-500 text-sm mt-1">
-                  All transcripts will be displayed in this language
+                <p className="text-text-muted text-sm mt-2">
+                  {mode === 'one_way'
+                    ? 'All speech will be translated to a single target language'
+                    : 'Speech is translated between two languages automatically'}
                 </p>
               </div>
-            </>
-          )}
 
-          {/* Speaker Diarization */}
-          <div className="bg-slate-700/30 rounded-lg p-4">
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={enableSpeakerDiarization}
-                onChange={(e) => setEnableSpeakerDiarization(e.target.checked)}
-                className="mt-1 w-4 h-4 rounded border-slate-500 text-blue-600 focus:ring-blue-500"
-              />
-              <div>
-                <span className="text-white font-medium">Enable Speaker Diarization</span>
-                <p className="text-slate-400 text-sm mt-1">
-                  Identify different speakers when multiple people speak into the same microphone.
-                  Useful for offline meetings where everyone shares one mic.
-                </p>
-              </div>
-            </label>
-          </div>
-
-          {/* Scheduled Start Time */}
-          <div>
-            <label className="block text-slate-300 mb-2">
-              Schedule for Later (Optional)
-              {userTimezone && (
-                <span className="text-slate-500 text-sm ml-2">
-                  (Your timezone: {userTimezone})
-                </span>
+              {mode === 'one_way' ? (
+                <div>
+                  <label className="block text-text-primary font-medium mb-2">Target Language</label>
+                  <Select value={targetLanguage} onChange={(e) => setTargetLanguage(e.target.value)}>
+                    {LANGUAGE_PAIRS.one_way.map((lang) => (
+                      <option key={lang.target} value={lang.target}>
+                        {lang.label}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <label className="block text-text-primary font-medium mb-2">Language Pair</label>
+                    <Select
+                      value={languagePair}
+                      onChange={(e) => {
+                        setLanguagePair(Number(e.target.value));
+                        setPreferredLanguage(''); // Reset preference when pair changes
+                      }}>
+                      {LANGUAGE_PAIRS.two_way.map((pair, index) => (
+                        <option key={index} value={index}>
+                          {pair.label}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="block text-text-primary font-medium mb-2">Your Display Language</label>
+                    <Select
+                      value={preferredLanguage || currentPair.a}
+                      onChange={(e) => setPreferredLanguage(e.target.value)}>
+                      <option value={currentPair.a}>{currentPair.a.toUpperCase()}</option>
+                      <option value={currentPair.b}>{currentPair.b.toUpperCase()}</option>
+                    </Select>
+                    <p className="text-text-muted text-sm mt-2">All transcripts will be displayed in this language</p>
+                  </div>
+                </>
               )}
-            </label>
-            <input
-              type="datetime-local"
-              value={scheduledStartTime}
-              onChange={(e) => setScheduledStartTime(e.target.value)}
-              className="w-full px-3 py-2 bg-transparent border border-primary rounded-md text-white"
-            />
-            <p className="text-slate-500 text-sm mt-1">
-              Leave empty to start immediately. Time is in your local timezone.
-            </p>
-          </div>
 
-          {/* Privacy Settings */}
-          <div>
-            <label className="block text-slate-300 mb-2">Privacy</label>
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-slate-300 cursor-pointer">
-                <input
-                  type="radio"
-                  checked={isPublic}
-                  onChange={() => setIsPublic(true)}
-                  className="text-blue-600"
-                />
-                <span>Public - Anyone with code can join</span>
-              </label>
-              <label className="flex items-center gap-2 text-slate-300 cursor-pointer">
-                <input
-                  type="radio"
-                  checked={!isPublic}
-                  onChange={() => setIsPublic(false)}
-                  className="text-blue-600"
-                />
-                <span>Private - Only invited users (allows join requests)</span>
-              </label>
-            </div>
-          </div>
-
-          {/* Invite Participants */}
-          {!isPublic && (
-            <EmailChipInput
-              value={invitedEmails}
-              onChange={setInvitedEmails}
-              label="Invite Participants (Optional)"
-              placeholder="Search by name or email..."
-            />
-          )}
-
-          {/* Context Sets Selection (Optional) */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="block text-slate-300">Context Sets (Optional)</label>
-              <Button
-                type="button"
-                onClick={handleOpenModal}
-                className="text-xs h-7 px-2 bg-blue-600 border-blue-600 text-white hover:bg-blue-700">
-                {selectedContextIds.length > 0 ? 'Change' : 'Select'}
-              </Button>
-            </div>
-
-            {selectedContextSets.length > 0 ? (
-              <div className="space-y-2 bg-slate-700/30 rounded-md p-3">
-                {selectedContextSets.map((contextSet) => {
-                  const termCount = contextSet.term_count || contextSet.terms?.length || 0;
-                  const generalCount = contextSet.general_count || contextSet.general?.length || 0;
-
-                  return (
-                    <div key={contextSet.id} className="flex items-center justify-between bg-slate-700/50 rounded px-2 py-1.5">
-                      <div className="flex-1 min-w-0">
-                        <div className="text-white text-sm truncate">{contextSet.name}</div>
-                        <div className="text-slate-500 text-xs">
-                          {termCount > 0 && <span>{termCount} terms</span>}
-                          {generalCount > 0 && <span className="ml-2">{generalCount} metadata</span>}
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={(e) => handleRemoveContext(e, contextSet.id)}
-                        className="ml-2 text-red-400 hover:text-red-300">
-                        &times;
-                      </button>
+              {/* Speaker Diarization */}
+              <div className="bg-plum-50 rounded-xl p-4 border border-plum-100">
+                <label className="flex items-start gap-3 cursor-pointer group">
+                  <div className="relative mt-0.5">
+                    <input
+                      type="checkbox"
+                      checked={enableSpeakerDiarization}
+                      onChange={(e) => setEnableSpeakerDiarization(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-5 h-5 border-2 border-plum-300 rounded peer-checked:border-plum-500 peer-checked:bg-plum-500 transition-colors flex items-center justify-center">
+                      {enableSpeakerDiarization && (
+                        <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
                     </div>
-                  );
-                })}
+                  </div>
+                  <div>
+                    <span className="text-text-primary font-medium group-hover:text-plum-600 transition-colors">
+                      Enable Speaker Diarization
+                    </span>
+                    <p className="text-text-muted text-sm mt-1">
+                      Identify different speakers when multiple people speak into the same microphone. Useful for offline
+                      meetings where everyone shares one mic.
+                    </p>
+                  </div>
+                </label>
               </div>
-            ) : (
-              <p className="text-slate-500 text-sm">
-                No context sets selected. Add domain-specific terms to improve transcription accuracy.
-              </p>
-            )}
+
+              {/* Scheduled Start Time */}
+              <div>
+                <label className="block text-text-primary font-medium mb-2">
+                  Schedule for Later (Optional)
+                  {userTimezone && <span className="text-text-muted text-sm ml-2 font-normal">({userTimezone})</span>}
+                </label>
+                <input
+                  type="datetime-local"
+                  value={scheduledStartTime}
+                  onChange={(e) => setScheduledStartTime(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-white border border-plum-200 rounded-lg text-text-primary focus:border-plum-500 focus:ring-2 focus:ring-plum-500/20 focus:outline-none transition-all"
+                />
+                <p className="text-text-muted text-sm mt-2">Leave empty to start immediately</p>
+              </div>
+
+              {/* Privacy Settings */}
+              <div>
+                <label className="block text-text-primary font-medium mb-3">Privacy</label>
+                <div className="space-y-3">
+                  <label className="flex items-center gap-3 cursor-pointer group p-3 rounded-lg hover:bg-plum-50 transition-colors">
+                    <div className="relative">
+                      <input
+                        type="radio"
+                        checked={isPublic}
+                        onChange={() => setIsPublic(true)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-5 h-5 border-2 border-plum-300 rounded-full peer-checked:border-plum-500 transition-colors flex items-center justify-center">
+                        {isPublic && <div className="w-2.5 h-2.5 bg-plum-500 rounded-full" />}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-text-primary font-medium">Public</span>
+                      <p className="text-text-muted text-sm">Anyone with the code can join</p>
+                    </div>
+                  </label>
+                  <label className="flex items-center gap-3 cursor-pointer group p-3 rounded-lg hover:bg-plum-50 transition-colors">
+                    <div className="relative">
+                      <input
+                        type="radio"
+                        checked={!isPublic}
+                        onChange={() => setIsPublic(false)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-5 h-5 border-2 border-plum-300 rounded-full peer-checked:border-plum-500 transition-colors flex items-center justify-center">
+                        {!isPublic && <div className="w-2.5 h-2.5 bg-plum-500 rounded-full" />}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-text-primary font-medium">Private</span>
+                      <p className="text-text-muted text-sm">Only invited users (allows join requests)</p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Invite Participants */}
+              {!isPublic && (
+                <EmailChipInput
+                  value={invitedEmails}
+                  onChange={setInvitedEmails}
+                  label="Invite Participants (Optional)"
+                  placeholder="Search by name or email..."
+                />
+              )}
+
+              {/* Context Sets Selection (Optional) */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-text-primary font-medium">Context Sets (Optional)</label>
+                  <Button type="button" onClick={handleOpenModal} variant="secondary" size="sm">
+                    {selectedContextIds.length > 0 ? 'Change' : 'Select'}
+                  </Button>
+                </div>
+
+                {selectedContextSets.length > 0 ? (
+                  <div className="space-y-2 bg-plum-50 rounded-xl p-3 border border-plum-100">
+                    {selectedContextSets.map((contextSet) => {
+                      const termCount = contextSet.term_count || contextSet.terms?.length || 0;
+                      const generalCount = contextSet.general_count || contextSet.general?.length || 0;
+
+                      return (
+                        <div
+                          key={contextSet.id}
+                          className="flex items-center justify-between bg-white rounded-lg px-3 py-2 shadow-sm">
+                          <div className="flex-1 min-w-0">
+                            <div className="text-text-primary text-sm font-medium truncate">{contextSet.name}</div>
+                            <div className="text-text-muted text-xs">
+                              {termCount > 0 && <span>{termCount} terms</span>}
+                              {generalCount > 0 && <span className="ml-2">{generalCount} metadata</span>}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={(e) => handleRemoveContext(e, contextSet.id)}
+                            className="ml-2 w-6 h-6 flex items-center justify-center rounded-full text-plum-400 hover:text-plum-600 hover:bg-plum-100 transition-colors">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-text-muted text-sm">
+                    Add domain-specific terms to improve transcription accuracy.
+                  </p>
+                )}
+              </div>
+
+              {/* Error Message */}
+              {error && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm flex items-start gap-3">
+                  <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    />
+                  </svg>
+                  <span>{error}</span>
+                </div>
+              )}
+
+              {/* Submit Button */}
+              <Button
+                type="submit"
+                disabled={isLoading || !hostName || !title}
+                variant="primary"
+                size="lg"
+                className="w-full">
+                {isLoading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Creating...
+                  </span>
+                ) : (
+                  'Create Session'
+                )}
+              </Button>
+            </form>
           </div>
-
-          {error && <div className="text-red-400 text-sm">{error}</div>}
-
-          <Button
-            type="submit"
-            disabled={isLoading || !hostName || !title}
-            className="w-full h-12 bg-blue-600 border-blue-600 text-white hover:bg-blue-700">
-            {isLoading ? 'Creating...' : 'Create Session'}
-          </Button>
-        </form>
-
-        {/* Context Selector Modal */}
-        <ContextSelectorModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          onSelect={handleSelectContexts}
-          excludeIds={[]}
-        />
+        </div>
       </div>
+
+      {/* Context Selector Modal */}
+      <ContextSelectorModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSelect={handleSelectContexts}
+        excludeIds={[]}
+      />
     </div>
   );
 }

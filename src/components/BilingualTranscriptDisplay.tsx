@@ -30,48 +30,61 @@ export function BilingualTranscriptDisplay({
 
   if (tokenGroups.length === 0) {
     return (
-      <div className={cn('flex items-center justify-center h-full text-gray-400', className)}>
+      <div className={cn('flex items-center justify-center h-full text-white/50', className)}>
         <p>Waiting for transcription...</p>
       </div>
     );
   }
 
   return (
-    <div className={cn('space-y-4', className)}>
+    <div className={cn('space-y-6', className)}>
       {tokenGroups.map((group) => (
-        <div key={group.id} className="space-y-1">
+        <div key={group.id} className="space-y-2 animate-fadeIn">
           {/* Original Language Section */}
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 p-3 rounded-r">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="bg-yellow-200 dark:bg-yellow-800 text-yellow-800 dark:text-yellow-200 text-xs px-2 py-0.5 rounded-full font-medium">
+          <div className="bg-white/5 backdrop-blur-sm border-l-4 border-plum-400 p-4 rounded-r-xl">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="bg-plum-500/30 text-plum-200 text-xs px-2.5 py-1 rounded-full font-medium">
                 {group.sourceLanguage?.toUpperCase() || 'AUTO'}
               </span>
               {showSpeaker && group.speaker && (
-                <span className="text-gray-600 dark:text-gray-400 text-sm">Speaker {group.speaker}</span>
+                <span className="text-white/60 text-sm">Speaker {group.speaker}</span>
               )}
               {!group.isFinal && (
-                <span className="text-xs text-yellow-600 dark:text-yellow-400 italic">(streaming)</span>
+                <span className="text-xs text-plum-300 italic flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 bg-plum-400 rounded-full animate-pulse" />
+                  streaming
+                </span>
               )}
             </div>
-            <p className="text-gray-900 dark:text-gray-100">{group.originalText}</p>
+            <p className="text-white text-lg leading-relaxed">{group.originalText}</p>
           </div>
 
           {/* Arrow Separator */}
-          <div className="text-gray-400 text-sm text-center my-1">↓</div>
+          <div className="flex justify-center">
+            <svg className="w-5 h-5 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+            </svg>
+          </div>
 
           {/* Translated Language Section */}
-          <div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400 p-3 rounded-r">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200 text-xs px-2 py-0.5 rounded-full font-medium">
+          <div className="bg-white/5 backdrop-blur-sm border-l-4 border-emerald-400 p-4 rounded-r-xl">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="bg-emerald-500/30 text-emerald-200 text-xs px-2.5 py-1 rounded-full font-medium">
                 {group.targetLanguage?.toUpperCase() || '?'}
               </span>
               {group.isTranslating && (
-                <span className="text-xs text-blue-600 dark:text-blue-400 italic">(translating)</span>
+                <span className="text-xs text-emerald-300 italic flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+                  translating
+                </span>
               )}
             </div>
-            <p className="text-gray-900 dark:text-gray-100">
+            <p className="text-white text-lg leading-relaxed">
               {group.translatedText || (
-                <span className="italic text-gray-400 dark:text-gray-500">Translating...</span>
+                <span className="italic text-white/40 flex items-center gap-2">
+                  <span className="w-4 h-4 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
+                  Translating...
+                </span>
               )}
             </p>
           </div>

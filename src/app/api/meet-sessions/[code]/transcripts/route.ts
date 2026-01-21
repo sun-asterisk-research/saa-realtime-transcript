@@ -5,7 +5,7 @@ import type { MeetTranscript, MeetTranscriptWithParticipant } from '@/lib/supaba
 // CORS headers for Chrome extension
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, PATCH, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
 
@@ -220,6 +220,137 @@ export async function GET(
     return NextResponse.json(transcripts || [], { headers: corsHeaders });
   } catch (error) {
     console.error('[MeetTranscripts] Error in GET /api/meet-sessions/[code]/transcripts:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500, headers: corsHeaders }
+    );
+  }
+}
+
+// PATCH /api/meet-sessions/[code]/transcripts - Update transcript translation
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ code: string }> }
+) {
+  try {
+    const { code } = await params;
+
+    // Authenticate user
+    let userId: string | null = null;
+    const authHeader = request.headers.get('Authorization');
+
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.replace('Bearer ', '');
+      const supabase = await createServerClient();
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+
+      if (error || !user) {
+        return NextResponse.json({ error: 'Invalid token' }, {
+          status: 401,
+          headers: corsHeaders,
+        });
+      }
+
+      userId = user.id;
+    } else {
+      const supabase = await createServerClient();
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        return NextResponse.json({ error: 'Unauthorized' }, {
+          status: 401,
+          headers: corsHeaders,
+        });
+      }
+
+      userId = user.id;
+    }
+
+    const body = await request.json();
+    const { participantId, text, translatedText } = body;
+
+    // Validate required fields
+    if (!participantId || !text || !translatedText) {
+      return NextResponse.json(
+        { error: 'participantId, text, and translatedText are required' },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    const supabase = await createServerClient();
+
+    // Get session
+    const { data: session, error: sessionError } = await supabase
+      .from('meet_sessions')
+      .select('id')
+      .eq('meeting_code', code)
+      .single();
+
+    if (sessionError || !session) {
+      return NextResponse.json(
+        { error: 'Session not found' },
+        { status: 404, headers: corsHeaders }
+      );
+    }
+
+    // Verify participant belongs to session and user
+    const { data: participant, error: participantError } = await supabase
+      .from('meet_session_participants')
+      .select('*')
+      .eq('id', participantId)
+      .eq('session_id', session.id)
+      .eq('user_id', userId)
+      .single();
+
+    if (participantError || !participant) {
+      return NextResponse.json(
+        { error: 'Participant not found or unauthorized' },
+        { status: 403, headers: corsHeaders }
+      );
+    }
+
+    // Find most recent transcript matching criteria
+    const { data: transcriptData, error: findError } = await supabase
+      .from('meet_transcripts')
+      .select('*')
+      .eq('session_id', session.id)
+      .eq('participant_id', participantId)
+      .eq('text', text)
+      .is('translated_text', null)
+      .eq('is_final', true)
+      .order('start_time', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (findError || !transcriptData) {
+      console.error('[MeetTranscripts] Transcript not found for update:', findError);
+      return NextResponse.json(
+        { error: 'No matching transcript found to update' },
+        { status: 404, headers: corsHeaders }
+      );
+    }
+
+    // Update translated_text
+    const { data: updatedData, error: updateError } = await supabase
+      .from('meet_transcripts')
+      .update({
+        translated_text: translatedText,
+      })
+      .eq('id', transcriptData.id)
+      .select()
+      .single();
+
+    if (updateError) {
+      console.error('[MeetTranscripts] Error updating transcript:', updateError);
+      return NextResponse.json(
+        { error: 'Failed to update transcript' },
+        { status: 500, headers: corsHeaders }
+      );
+    }
+
+    return NextResponse.json(updatedData, { headers: corsHeaders });
+  } catch (error) {
+    console.error('[MeetTranscripts] Error in PATCH /api/meet-sessions/[code]/transcripts:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500, headers: corsHeaders }
