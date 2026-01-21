@@ -21,5 +21,10 @@ yarn-error.log*
 # OS
 Thumbs.db
 
+.turbo
+
+.env*
+!.env.example
+
 # beads
 .beads/

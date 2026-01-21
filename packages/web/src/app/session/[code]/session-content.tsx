@@ -15,7 +15,11 @@ import { useSession } from '@/lib/hooks/useSession';
 import { useParticipants } from '@/lib/hooks/useParticipants';
 import { useTranscripts } from '@/lib/hooks/useTranscripts';
 import { useSessionTranscribe } from '@/lib/hooks/useSessionTranscribe';
+import { useProxySessionTranscribe } from '@/lib/hooks/useProxySessionTranscribe';
 import { useSessionContexts } from '@/lib/hooks/useSessionContexts';
+
+// Check if proxy mode is enabled
+const PROXY_URL = process.env.NEXT_PUBLIC_REALTIME_TRANSCRIBE_ENDPOINT;
 import { ContextManagementPanel } from '@/components/context/ContextManagementPanel';
 import { JoinRequestNotifications } from '@/components/join-request-notifications';
 import { InviteModal } from '@/components/invite-modal';
@@ -230,6 +234,7 @@ export default function SessionContent({ code }: SessionContentProps) {
       : { type: 'two_way', language_a: session.language_a!, language_b: session.language_b! }
     : undefined;
 
+  // Callbacks for direct mode (client-side saving)
   const handleBroadcast = useCallback(
     (data: {
       participantId: string;
@@ -278,7 +283,8 @@ export default function SessionContent({ code }: SessionContentProps) {
     [code, participantInfo, addTranscript],
   );
 
-  const { start, stop, state, streamingOriginal, streamingTranslated, currentSourceLanguage, currentTargetLanguage, currentSpeakerId } = useSessionTranscribe({
+  // Use proxy mode if PROXY_URL is configured, otherwise use direct mode
+  const directTranscribe = useSessionTranscribe({
     sessionCode: code,
     participantId: participantInfo?.participantId || '',
     participantName: participantInfo?.participantName || '',
@@ -288,6 +294,20 @@ export default function SessionContent({ code }: SessionContentProps) {
     onBroadcast: handleBroadcast,
     onFinalTranscript: handleFinalTranscript,
   });
+
+  const proxyTranscribe = useProxySessionTranscribe({
+    proxyUrl: PROXY_URL || '',
+    sessionCode: code,
+    participantId: participantInfo?.participantId || '',
+    participantName: participantInfo?.participantName || '',
+    translationConfig,
+    context: mergedContext,
+    enableSpeakerDiarization: session?.enable_speaker_diarization || false,
+  });
+
+  // Select which transcribe hook to use based on configuration
+  const { start, stop, state, streamingOriginal, streamingTranslated, currentSourceLanguage, currentTargetLanguage, currentSpeakerId } =
+    PROXY_URL ? proxyTranscribe : directTranscribe;
 
   // Compute local streaming display text based on user's preference
   const currentStreamingData = getDisplayText(

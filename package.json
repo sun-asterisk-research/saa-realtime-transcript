@@ -4,18 +4,24 @@
   "private": true,
   "packageManager": "pnpm@10.24.0",
   "scripts": {
-    "dev": "pnpm --filter @sun-asterisk/meeting-trans-web dev",
-    "dev:web": "pnpm --filter @sun-asterisk/meeting-trans-web dev",
-    "dev:extension": "pnpm --filter @sun-asterisk/meeting-trans-browser dev",
-    "build": "pnpm -r build",
-    "build:web": "pnpm --filter @sun-asterisk/meeting-trans-web build",
-    "build:extension": "pnpm --filter @sun-asterisk/meeting-trans-browser build",
-    "lint": "pnpm -r lint",
-    "typecheck": "pnpm -r typecheck",
+    "dev": "turbo run dev --filter=@sun-asterisk/meeting-trans-web --filter=@sun-asterisk/meeting-trans-realtime",
+    "dev:web": "turbo run dev --filter=@sun-asterisk/meeting-trans-web",
+    "dev:extension": "turbo run dev --filter=@sun-asterisk/meeting-trans-browser",
+    "dev:realtime": "turbo run dev --filter=@sun-asterisk/meeting-trans-realtime",
+    "build": "turbo run build",
+    "build:web": "turbo run build --filter=@sun-asterisk/meeting-trans-web",
+    "build:extension": "turbo run build --filter=@sun-asterisk/meeting-trans-browser",
+    "build:realtime": "turbo run build --filter=@sun-asterisk/meeting-trans-realtime",
+    "start:realtime": "pnpm --filter @sun-asterisk/meeting-trans-realtime start",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
     "sb:genTypes": "pnpm --filter @sun-asterisk/meeting-trans-web sb:genTypes",
     "sb:push": "pnpm --filter @sun-asterisk/meeting-trans-web sb:push",
     "db:migrate": "pnpm --filter @sun-asterisk/meeting-trans-web db:migrate",
     "db:reset": "pnpm --filter @sun-asterisk/meeting-trans-web db:reset",
     "migration:create": "pnpm --filter @sun-asterisk/meeting-trans-web migration:create"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.4"
   }
 }
