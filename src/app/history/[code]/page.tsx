@@ -262,6 +262,7 @@ export default function HistoryPage({ params }: { params: Promise<{ code: string
                           languageA={session?.language_a || undefined}
                           languageB={session?.language_b || undefined}
                           showSpeaker={false}
+                          variant="light"
                         />
                       </div>
                     );

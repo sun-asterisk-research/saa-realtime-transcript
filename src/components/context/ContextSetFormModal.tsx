@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/button';
 import { Input } from '@/components/input';
 import type { ContextSetWithDetails, ContextSetFormData } from '@/lib/supabase/types';
-import { generateContextSetTemplate, generateAnnotatedTemplate, generateChatGPTPrompt } from '@/lib/context/json-template';
+import { generateContextSetTemplate, generateAnnotatedTemplate, generateChatGPTPrompt, LANGUAGE_OPTIONS } from '@/lib/context/json-template';
 import { validateImportedJson } from '@/lib/context/json-validator';
 
 interface ContextSetFormModalProps {
@@ -37,6 +37,11 @@ export function ContextSetFormModal({ isOpen, onClose, onSubmit, contextSet, use
   const [importJson, setImportJson] = useState('');
   const [importError, setImportError] = useState('');
   const [importSuccess, setImportSuccess] = useState(false);
+
+  // ChatGPT Prompt language selection state
+  const [showLanguageSelector, setShowLanguageSelector] = useState(false);
+  const [promptSourceLang, setPromptSourceLang] = useState('en');
+  const [promptTargetLang, setPromptTargetLang] = useState('vi');
 
   // Load context set data when editing
   useEffect(() => {
@@ -119,10 +124,15 @@ export function ContextSetFormModal({ isOpen, onClose, onSubmit, contextSet, use
     }
   };
 
+  const handleOpenLanguageSelector = () => {
+    setShowLanguageSelector(true);
+  };
+
   const handleCopyChatGPTPrompt = async () => {
-    const prompt = generateChatGPTPrompt();
+    const prompt = generateChatGPTPrompt(promptSourceLang, promptTargetLang);
     try {
       await navigator.clipboard.writeText(prompt);
+      setShowLanguageSelector(false);
       alert('ChatGPT prompt copied to clipboard! Paste it into ChatGPT to generate your JSON.');
     } catch (err) {
       alert('Failed to copy to clipboard.');
@@ -513,7 +523,7 @@ export function ContextSetFormModal({ isOpen, onClose, onSubmit, contextSet, use
                     </svg>
                     Copy Template
                   </Button>
-                  <Button type="button" onClick={handleCopyChatGPTPrompt} variant="primary" size="sm">
+                  <Button type="button" onClick={handleOpenLanguageSelector} variant="primary" size="sm">
                     <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
@@ -606,6 +616,97 @@ export function ContextSetFormModal({ isOpen, onClose, onSubmit, contextSet, use
           </div>
         </form>
       </div>
+
+      {/* Language Selector Modal for ChatGPT Prompt */}
+      {showLanguageSelector && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-scaleIn border border-plum-100">
+            <div className="px-6 py-4 border-b border-gray-100">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-plum-500 to-plum-700 rounded-xl flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-bold text-text-primary">Select Language Pair</h3>
+                </div>
+                <button
+                  onClick={() => setShowLanguageSelector(false)}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg text-text-muted hover:text-text-primary hover:bg-gray-100 transition-colors cursor-pointer"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <p className="text-text-secondary text-sm">
+                Select the language pair for your context set. This will help ChatGPT generate accurate translation terms.
+              </p>
+
+              <div>
+                <label className="block text-text-primary font-medium mb-2 text-sm">Source Language</label>
+                <select
+                  value={promptSourceLang}
+                  onChange={(e) => setPromptSourceLang(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-white border-2 border-plum-200 rounded-xl text-text-primary focus:border-plum-500 focus:ring-2 focus:ring-plum-500/20 focus:outline-none transition-all cursor-pointer"
+                >
+                  {LANGUAGE_OPTIONS.map((lang) => (
+                    <option key={lang.code} value={lang.code}>
+                      {lang.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex justify-center">
+                <svg className="w-5 h-5 text-plum-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                </svg>
+              </div>
+
+              <div>
+                <label className="block text-text-primary font-medium mb-2 text-sm">Target Language</label>
+                <select
+                  value={promptTargetLang}
+                  onChange={(e) => setPromptTargetLang(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-white border-2 border-plum-200 rounded-xl text-text-primary focus:border-plum-500 focus:ring-2 focus:ring-plum-500/20 focus:outline-none transition-all cursor-pointer"
+                >
+                  {LANGUAGE_OPTIONS.map((lang) => (
+                    <option key={lang.code} value={lang.code}>
+                      {lang.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {promptSourceLang === promptTargetLang && (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-sm flex items-center gap-2">
+                  <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  Source and target languages are the same. Translation terms may not be needed.
+                </div>
+              )}
+            </div>
+
+            <div className="px-6 py-4 border-t border-gray-100 bg-surface-muted/30 flex gap-3 justify-end">
+              <Button type="button" onClick={() => setShowLanguageSelector(false)} variant="outline" size="sm">
+                Cancel
+              </Button>
+              <Button type="button" onClick={handleCopyChatGPTPrompt} variant="primary" size="sm">
+                <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                Copy Prompt
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
