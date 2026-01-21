@@ -15,12 +15,14 @@
     "migration:create": "supabase migration new"
   },
   "dependencies": {
+    "@ricky0123/vad-web": "^0.0.30",
     "@soniox/speech-to-text-web": "^1.3.0",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.47.10",
     "clsx": "^2.1.1",
     "nanoid": "^5.0.9",
     "next": "^16.0.8",
+    "onnxruntime-web": "^1.23.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tailwind-merge": "^2.6.0"

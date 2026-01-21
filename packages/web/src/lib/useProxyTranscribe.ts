@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { TranslationConfig, Context, Token } from '@soniox/speech-to-text-web';
+import { MicVAD } from '@ricky0123/vad-web';
 import { getSupabaseClient } from '@/lib/supabase/client';
 
 const END_TOKEN = '<end>';
@@ -30,7 +31,8 @@ interface ProxyError {
 
 interface ProxyStatus {
   type: 'status';
-  status: 'connected' | 'ready' | 'finished' | 'error';
+  status: 'connected' | 'ready' | 'finished' | 'error' | 'paused' | 'idling';
+  reason?: string;
 }
 
 type ProxyMessage = ProxyResult | ProxyError | ProxyStatus;
@@ -87,11 +89,115 @@ export default function useProxyTranscribe({
   const wsRef = useRef<WebSocket | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
+  const vadRef = useRef<Awaited<ReturnType<typeof MicVAD.new>> | null>(null);
+  const vadInitPromiseRef = useRef<Promise<Awaited<ReturnType<typeof MicVAD.new>> | null> | null>(null);
+  const isPausedRef = useRef<boolean>(false);
+  const isResumingRef = useRef<boolean>(false);
+  const pendingAudioRef = useRef<ArrayBuffer[]>([]);
+  const vadReadyRef = useRef<boolean>(false);
 
   const [state, setState] = useState<RecorderState>('Init');
   const [finalTokens, setFinalTokens] = useState<Token[]>([]);
   const [nonFinalTokens, setNonFinalTokens] = useState<Token[]>([]);
   const [error, setError] = useState<TranscriptionError | null>(null);
+  const [isPaused, setIsPaused] = useState<boolean>(false);
+
+  // Handler for VAD speech detection - defined as ref to avoid recreating VAD
+  const handleVADSpeechStart = useCallback(() => {
+    console.debug('[ProxyTranscribe] VAD detected speech start');
+    if (isPausedRef.current && wsRef.current?.readyState === WebSocket.OPEN && mediaStreamRef.current) {
+      console.debug('[ProxyTranscribe] Starting MediaRecorder immediately to capture speech');
+
+      // Clear any old pending audio
+      pendingAudioRef.current = [];
+
+      // Start a new MediaRecorder immediately to capture the speech
+      const newMediaRecorder = new MediaRecorder(mediaStreamRef.current, {
+        mimeType: 'audio/webm;codecs=opus',
+      });
+      mediaRecorderRef.current = newMediaRecorder;
+
+      // Buffer audio chunks until server is ready
+      newMediaRecorder.ondataavailable = async (event) => {
+        if (event.data.size > 0) {
+          const buffer = await event.data.arrayBuffer();
+          if (isResumingRef.current) {
+            // Still waiting for server, buffer the audio
+            console.debug(`[ProxyTranscribe] Buffering audio chunk (${buffer.byteLength} bytes)`);
+            pendingAudioRef.current.push(buffer);
+          } else if (wsRef.current?.readyState === WebSocket.OPEN) {
+            // Server is ready, send directly
+            wsRef.current.send(buffer);
+          }
+        }
+      };
+
+      newMediaRecorder.start(120);
+
+      // Mark that we're resuming
+      isResumingRef.current = true;
+
+      // Send resume command to server - server will recreate Soniox connection
+      console.debug('[ProxyTranscribe] Sending resume command to server');
+      wsRef.current.send(JSON.stringify({ type: 'resume' }));
+    }
+    // Pause VAD after speech is detected (will be resumed on next pause)
+    if (vadRef.current) {
+      console.debug('[ProxyTranscribe] Pausing VAD');
+      vadRef.current.pause();
+    }
+  }, []);
+
+  // Initialize VAD once (lazy loading on first use)
+  const initVAD = useCallback(() => {
+    // Already initialized
+    if (vadRef.current) {
+      return Promise.resolve(vadRef.current);
+    }
+
+    // Already initializing - return existing promise
+    if (vadInitPromiseRef.current) {
+      return vadInitPromiseRef.current;
+    }
+
+    console.debug('[ProxyTranscribe] Initializing VAD (one-time load)...');
+    const initPromise = MicVAD.new({
+      // Asset paths for ONNX model and worklet files
+      baseAssetPath: '/vad/',
+      onnxWASMBasePath: '/vad/',
+      // Use v5 model instead of legacy
+      model: 'v5',
+      positiveSpeechThreshold: 0.5,
+      minSpeechMs: 200,
+      onSpeechStart: handleVADSpeechStart,
+    })
+      .then((vad) => {
+        vadRef.current = vad;
+        vadReadyRef.current = true;
+        console.debug('[ProxyTranscribe] VAD initialized successfully');
+        return vad;
+      })
+      .catch((err) => {
+        console.error('[ProxyTranscribe] Failed to initialize VAD:', err);
+        vadReadyRef.current = false;
+        vadInitPromiseRef.current = null; // Allow retry
+        return null;
+      });
+
+    vadInitPromiseRef.current = initPromise;
+    return initPromise;
+  }, [handleVADSpeechStart]);
+
+  // Start VAD for speech detection when paused
+  const startVAD = useCallback(async () => {
+    console.debug('[ProxyTranscribe] Starting VAD for speech detection...');
+    const vad = await initVAD();
+    if (vad) {
+      vad.start();
+      console.debug('[ProxyTranscribe] VAD started');
+    }
+  }, [initVAD]);
+
 
   const handleProxyMessage = useCallback(
     (event: MessageEvent) => {
@@ -100,12 +206,61 @@ export default function useProxyTranscribe({
 
         switch (message.type) {
           case 'status':
-            if (message.status === 'ready') {
+            console.debug(`[ProxyTranscribe] Status: ${message.status}${message.reason ? ` (${message.reason})` : ''}`);
+            if (message.status === 'connected') {
+              console.debug('[ProxyTranscribe] Connected to proxy server');
+            } else if (message.status === 'ready') {
+              console.debug('[ProxyTranscribe] Soniox connection ready, transcription started');
+
+              // If we're resuming after pause, send buffered audio
+              if (isResumingRef.current) {
+                // Send any buffered audio chunks
+                if (pendingAudioRef.current.length > 0) {
+                  console.debug(`[ProxyTranscribe] Sending ${pendingAudioRef.current.length} buffered audio chunks`);
+                  for (const buffer of pendingAudioRef.current) {
+                    if (wsRef.current?.readyState === WebSocket.OPEN) {
+                      wsRef.current.send(buffer);
+                    }
+                  }
+                  pendingAudioRef.current = [];
+                }
+                isResumingRef.current = false;
+                // MediaRecorder is already running from VAD speech detection
+              }
+
+              isPausedRef.current = false;
+              setIsPaused(false);
               setState('Running');
               onStarted?.();
             } else if (message.status === 'finished') {
+              console.debug('[ProxyTranscribe] Transcription finished');
               setState('Finished');
               onFinished?.();
+            } else if (message.status === 'idling') {
+              // Server signals connection has been idle - preload VAD in case pause happens
+              if (!vadRef.current && !vadInitPromiseRef.current) {
+                console.debug('[ProxyTranscribe] Received idling signal, preloading VAD...');
+                initVAD();
+              }
+            } else if (message.status === 'paused') {
+              console.debug('[ProxyTranscribe] Soniox connection paused due to inactivity');
+
+              // Only enter paused state if VAD is ready or can be initialized
+              // If VAD failed to load, user would be stuck unable to resume
+              if (vadReadyRef.current || !vadRef.current) {
+                // Stop MediaRecorder to stop sending audio (will be restarted on resume)
+                if (mediaRecorderRef.current?.state === 'recording') {
+                  console.debug('[ProxyTranscribe] Stopping MediaRecorder');
+                  mediaRecorderRef.current.stop();
+                  isPausedRef.current = true;
+                  setIsPaused(true);
+                }
+                // Start VAD to detect when user starts speaking again
+                startVAD();
+              } else {
+                console.warn('[ProxyTranscribe] VAD failed to load, not entering paused state to prevent user from being stuck');
+                // Keep MediaRecorder running so user can still send audio
+              }
             }
             break;
 
@@ -144,7 +299,7 @@ export default function useProxyTranscribe({
         console.error('[ProxyTranscribe] Error parsing message:', e);
       }
     },
-    [onStarted, onFinished]
+    [onStarted, onFinished, initVAD, startVAD]
   );
 
   const startTranscription = useCallback(async () => {
@@ -254,6 +409,12 @@ export default function useProxyTranscribe({
   ]);
 
   const stopTranscription = useCallback(() => {
+    // Pause VAD but keep it alive for potential next session
+    if (vadRef.current) {
+      console.debug('[ProxyTranscribe] Pausing VAD (keeping alive for reuse)');
+      vadRef.current.pause();
+    }
+
     // Stop recording
     if (mediaRecorderRef.current?.state !== 'inactive') {
       mediaRecorderRef.current?.stop();
@@ -267,12 +428,20 @@ export default function useProxyTranscribe({
       wsRef.current.send('');
     }
 
+    isPausedRef.current = false;
+    setIsPaused(false);
     setState('Init');
   }, []);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      // Stop VAD if running
+      if (vadRef.current) {
+        vadRef.current.pause();
+        vadRef.current.destroy();
+        vadRef.current = null;
+      }
       if (mediaRecorderRef.current?.state !== 'inactive') {
         mediaRecorderRef.current?.stop();
       }
@@ -290,5 +459,6 @@ export default function useProxyTranscribe({
     finalTokens,
     nonFinalTokens,
     error,
+    isPaused,
   };
 }

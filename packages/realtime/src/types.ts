@@ -12,6 +12,12 @@ export interface ClientConfig {
   enableEndpointDetection?: boolean;
   translation?: TranslationConfig;
   context?: Context;
+  idleTimeoutMs?: number; // Idle timeout in milliseconds (default: 60000)
+}
+
+// Resume command from client (after VAD detects speech)
+export interface ClientResume {
+  type: 'resume';
 }
 
 export interface TranslationConfig {
@@ -69,7 +75,8 @@ export interface ProxyError {
 
 export interface ProxyStatus {
   type: 'status';
-  status: 'connected' | 'ready' | 'finished' | 'error';
+  status: 'connected' | 'ready' | 'finished' | 'error' | 'paused' | 'idling';
+  reason?: string;
 }
 
 // Transcript data for database

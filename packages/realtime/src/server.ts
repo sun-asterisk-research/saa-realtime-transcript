@@ -14,6 +14,7 @@ import { verifyAuthToken } from './supabase.js';
 
 const SONIOX_WS_URL = 'wss://stt-rt.soniox.com/transcribe-websocket';
 const PORT = parseInt(process.env.PORT || '3001', 10);
+const DEFAULT_IDLE_TIMEOUT_MS = parseInt(process.env.IDLE_TIMEOUT_MS || '60000', 10); // Default: 1 minute
 
 interface ClientConnection {
   clientWs: WebSocket;
@@ -22,6 +23,12 @@ interface ClientConnection {
   isReady: boolean;
   session: ClientSession | null;
   transcriptHandler: TranscriptHandler | null;
+  // Idle timeout management
+  config: ClientConfig | null;
+  idleTimeoutMs: number;
+  idleTimer: ReturnType<typeof setTimeout> | null;
+  preparePauseTimer: ReturnType<typeof setTimeout> | null;
+  isPaused: boolean;
 }
 
 function createSonioxConnection(
@@ -31,7 +38,7 @@ function createSonioxConnection(
   const sonioxWs = new WebSocket(SONIOX_WS_URL);
 
   sonioxWs.on('open', () => {
-    console.log(`[Soniox] Connected for participant: ${config.participantName}`);
+    console.debug(`[Soniox] Connected for participant: ${config.participantName}, queued messages: ${connection.messageQueue.length}`);
 
     // Send configuration to Soniox
     const sonioxConfig: SonioxConfig = {
@@ -62,23 +69,38 @@ function createSonioxConnection(
 
     // Process queued messages
     connection.isReady = true;
+    let sentCount = 0;
+    let totalBytes = 0;
     while (connection.messageQueue.length > 0) {
       const msg = connection.messageQueue.shift();
       if (msg && sonioxWs.readyState === WebSocket.OPEN) {
+        const size = Buffer.isBuffer(msg) ? msg.length : (msg as ArrayBuffer).byteLength || 0;
+        totalBytes += size;
         sonioxWs.send(msg);
+        sentCount++;
       }
     }
+    console.debug(`[Soniox] Sent ${sentCount} queued audio chunks (${totalBytes} bytes total)`);
 
     // Notify client that connection is ready
     sendToClient(connection.clientWs, {
       type: 'status',
       status: 'ready',
     } as ProxyStatus);
+
+    // Start idle timer when connection is ready
+    resetIdleTimer(connection);
   });
 
   sonioxWs.on('message', async (data: RawData) => {
     try {
       const result: SonioxResult = JSON.parse(data.toString());
+
+      // Reset idle timer when Soniox returns tokens (indicates speech activity)
+      if (result.tokens && result.tokens.length > 0) {
+        console.debug(`[Soniox] Received ${result.tokens.length} tokens`);
+        resetIdleTimer(connection);
+      }
 
       // Process tokens for transcript handling (broadcast + save)
       if (connection.transcriptHandler && result.tokens) {
@@ -96,16 +118,38 @@ function createSonioxConnection(
   });
 
   sonioxWs.on('close', (code, reason) => {
-    console.log(
+    console.debug(
       `[Soniox] Disconnected: ${code} - ${reason.toString() || 'No reason'}`
     );
     connection.isReady = false;
     connection.sonioxWs = null;
 
-    sendToClient(connection.clientWs, {
-      type: 'status',
-      status: 'finished',
-    } as ProxyStatus);
+    // Clear idle timers since connection is closed
+    clearIdleTimer(connection);
+
+    if (connection.isPaused) {
+      // Already marked as paused by our pause logic - don't send anything
+      return;
+    }
+
+    // If we still have config, treat unexpected disconnection as pause
+    // (Soniox may have its own idle timeout that closed the connection)
+    // This allows the client to resume when they start speaking again
+    if (connection.config) {
+      console.debug('[Soniox] Unexpected disconnection - treating as pause for potential resume');
+      connection.isPaused = true;
+      sendToClient(connection.clientWs, {
+        type: 'status',
+        status: 'paused',
+        reason: 'connection_closed',
+      } as ProxyStatus);
+    } else {
+      // No config means we can't resume - send finished
+      sendToClient(connection.clientWs, {
+        type: 'status',
+        status: 'finished',
+      } as ProxyStatus);
+    }
   });
 
   sonioxWs.on('error', (error) => {
@@ -125,6 +169,91 @@ function sendToClient(ws: WebSocket, message: ProxyResult | ProxyError | ProxySt
   }
 }
 
+function resetIdleTimer(connection: ClientConnection): void {
+  // Clear existing timers
+  if (connection.idleTimer) {
+    clearTimeout(connection.idleTimer);
+    connection.idleTimer = null;
+  }
+  if (connection.preparePauseTimer) {
+    clearTimeout(connection.preparePauseTimer);
+    connection.preparePauseTimer = null;
+  }
+
+  // Don't set timer if already paused or no timeout configured
+  if (connection.isPaused || connection.idleTimeoutMs <= 0) {
+    return;
+  }
+
+  // Set idling timer at 80% of idle timeout
+  const idleWarningDelay = Math.floor(connection.idleTimeoutMs * 0.8);
+  connection.preparePauseTimer = setTimeout(() => {
+    console.debug(`[Idle] Sending idling signal (${idleWarningDelay}ms elapsed, pause in ${connection.idleTimeoutMs - idleWarningDelay}ms)`);
+    sendToClient(connection.clientWs, {
+      type: 'status',
+      status: 'idling',
+    } as ProxyStatus);
+  }, idleWarningDelay);
+
+  // Set new idle timer for actual pause
+  connection.idleTimer = setTimeout(() => {
+    pauseSonioxConnection(connection);
+  }, connection.idleTimeoutMs);
+}
+
+function pauseSonioxConnection(connection: ClientConnection): void {
+  if (connection.isPaused || !connection.sonioxWs) {
+    return;
+  }
+
+  console.debug(`[Idle] Pausing Soniox connection due to no transcription for ${connection.idleTimeoutMs}ms`);
+
+  // Set paused flag BEFORE closing to prevent 'finished' status being sent
+  connection.isPaused = true;
+  connection.isReady = false;
+
+  // Clear the message queue to discard any stale audio data
+  const discardedCount = connection.messageQueue.length;
+  connection.messageQueue = [];
+  if (discardedCount > 0) {
+    console.debug(`[Idle] Discarded ${discardedCount} queued audio chunks`);
+  }
+
+  // Close the Soniox connection
+  if (connection.sonioxWs.readyState === WebSocket.OPEN) {
+    connection.sonioxWs.close();
+  }
+  connection.sonioxWs = null;
+
+  // Notify client
+  sendToClient(connection.clientWs, {
+    type: 'status',
+    status: 'paused',
+    reason: 'no_transcription',
+  } as ProxyStatus);
+}
+
+function startSonioxConnection(connection: ClientConnection, config: ClientConfig): void {
+  console.debug(`[Soniox] Starting connection for participant: ${config.participantName}`);
+
+  // Reset paused state
+  connection.isPaused = false;
+
+  // Create the Soniox connection (client will receive 'ready' when it opens)
+  connection.sonioxWs = createSonioxConnection(connection, config);
+}
+
+function clearIdleTimer(connection: ClientConnection): void {
+  if (connection.idleTimer) {
+    clearTimeout(connection.idleTimer);
+    connection.idleTimer = null;
+  }
+  if (connection.preparePauseTimer) {
+    clearTimeout(connection.preparePauseTimer);
+    connection.preparePauseTimer = null;
+  }
+}
+
 async function handleClientMessage(
   connection: ClientConnection,
   data: RawData,
@@ -137,7 +266,7 @@ async function handleClientMessage(
 
       if (message.type === 'config') {
         const config = message as ClientConfig;
-        console.log(
+        console.debug(
           `[Client] Config received for session: ${config.sessionCode}, participant: ${config.participantName}`
         );
 
@@ -165,16 +294,33 @@ async function handleClientMessage(
           return;
         }
 
-        console.log(`[Auth] Authenticated user: ${user.email}`);
+        console.debug(`[Auth] Authenticated user: ${user.email}`);
 
-        // Create Soniox connection
-        connection.sonioxWs = createSonioxConnection(connection, config);
+        // Store config for potential reconnection after idle pause
+        connection.config = config;
+        // Client cannot set idle timeout higher than server default
+        const clientTimeout = config.idleTimeoutMs ?? DEFAULT_IDLE_TIMEOUT_MS;
+        connection.idleTimeoutMs = Math.min(clientTimeout, DEFAULT_IDLE_TIMEOUT_MS);
+
+        // Start Soniox connection (idle timer starts when connection is ready)
+        startSonioxConnection(connection, config);
+        return;
+      }
+
+      // Handle resume command from client (after VAD detects speech)
+      if (message.type === 'resume') {
+        console.debug('[Client] Resume command received');
+        if (connection.isPaused && connection.config) {
+          startSonioxConnection(connection, connection.config);
+        } else {
+          console.debug(`[Client] Ignoring resume command - isPaused=${connection.isPaused}, hasConfig=${!!connection.config}`);
+        }
         return;
       }
 
       // Handle stop signal (empty string)
       if (data.toString() === '' || message === '') {
-        console.log('[Client] Stop signal received');
+        console.debug('[Client] Stop signal received');
         if (connection.sonioxWs?.readyState === WebSocket.OPEN) {
           connection.sonioxWs.send('');
         }
@@ -183,7 +329,7 @@ async function handleClientMessage(
     } catch {
       // Not JSON, might be stop signal
       if (data.toString() === '') {
-        console.log('[Client] Stop signal received');
+        console.debug('[Client] Stop signal received');
         if (connection.sonioxWs?.readyState === WebSocket.OPEN) {
           connection.sonioxWs.send('');
         }
@@ -194,10 +340,18 @@ async function handleClientMessage(
 
   // Handle binary messages (audio data)
   if (isBinary) {
+    // Discard audio when paused - client should send resume command first
+    if (connection.isPaused) {
+      console.debug(`[Audio] Discarding audio while paused (data size: ${Buffer.isBuffer(data) ? data.length : 'unknown'})`);
+      return;
+    }
+
     if (connection.isReady && connection.sonioxWs?.readyState === WebSocket.OPEN) {
+      console.debug(`[Audio] Sending audio chunk (${Buffer.isBuffer(data) ? data.length : 0} bytes)`);
       connection.sonioxWs.send(data);
     } else {
       // Queue message until Soniox connection is ready
+      console.debug(`[Audio] Queueing audio chunk (isReady: ${connection.isReady}, wsState: ${connection.sonioxWs?.readyState})`);
       connection.messageQueue.push(data);
     }
   }
@@ -214,7 +368,7 @@ function startServer(): void {
   console.log(`Realtime proxy server started on ws://localhost:${PORT}`);
 
   wss.on('connection', (clientWs: WebSocket) => {
-    console.log('[Client] New connection');
+    console.debug('[Client] New connection');
 
     const connection: ClientConnection = {
       clientWs,
@@ -223,6 +377,11 @@ function startServer(): void {
       isReady: false,
       session: null,
       transcriptHandler: null,
+      config: null,
+      idleTimeoutMs: DEFAULT_IDLE_TIMEOUT_MS,
+      idleTimer: null,
+      preparePauseTimer: null,
+      isPaused: false,
     };
 
     // Send connected status
@@ -236,7 +395,10 @@ function startServer(): void {
     });
 
     clientWs.on('close', () => {
-      console.log('[Client] Disconnected');
+      console.debug('[Client] Disconnected');
+
+      // Clear idle timer
+      clearIdleTimer(connection);
 
       // Close Soniox connection if open
       if (connection.sonioxWs?.readyState === WebSocket.OPEN) {
