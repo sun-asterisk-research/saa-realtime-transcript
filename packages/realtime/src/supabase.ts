@@ -1,5 +1,9 @@
 import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
 import type { TranscriptData, BroadcastData } from './types.js';
+import { env } from './env.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('supabase');
 
 let supabaseClient: SupabaseClient | null = null;
 
@@ -8,18 +12,7 @@ export function getSupabaseClient(): SupabaseClient {
     return supabaseClient;
   }
 
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl) {
-    throw new Error('SUPABASE_URL is not set');
-  }
-
-  if (!serviceRoleKey) {
-    throw new Error('SUPABASE_SERVICE_ROLE_KEY is not set');
-  }
-
-  supabaseClient = createClient(supabaseUrl, serviceRoleKey, {
+  supabaseClient = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
@@ -38,7 +31,7 @@ export async function verifyAuthToken(token: string): Promise<User | null> {
   const { data, error } = await supabase.auth.getUser(token);
 
   if (error || !data.user) {
-    console.error('[Auth] Token verification failed:', error?.message);
+    log.error({ err: error }, 'Token verification failed');
     return null;
   }
 
@@ -69,7 +62,7 @@ export async function getSessionByCode(code: string): Promise<Session | null> {
     .single();
 
   if (error || !data) {
-    console.error(`Session lookup failed for ${code}:`, error?.message);
+    log.error({ code, err: error }, 'Session lookup failed');
     return null;
   }
 
@@ -80,12 +73,12 @@ export async function getSessionByCode(code: string): Promise<Session | null> {
 export async function saveTranscript(data: TranscriptData): Promise<boolean> {
   const session = await getSessionByCode(data.sessionCode);
   if (!session) {
-    console.error(`Cannot save transcript: session ${data.sessionCode} not found`);
+    log.error({ sessionCode: data.sessionCode }, 'Cannot save transcript: session not found');
     return false;
   }
 
   if (session.status === 'ended') {
-    console.error(`Cannot save transcript: session ${data.sessionCode} has ended`);
+    log.error({ sessionCode: data.sessionCode }, 'Cannot save transcript: session has ended');
     return false;
   }
 
@@ -103,7 +96,7 @@ export async function saveTranscript(data: TranscriptData): Promise<boolean> {
   });
 
   if (error) {
-    console.error('Failed to save transcript:', error.message);
+    log.error({ err: error }, 'Failed to save transcript');
     return false;
   }
 
