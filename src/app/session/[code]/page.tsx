@@ -9,8 +9,11 @@ import dynamic from 'next/dynamic';
 const SessionContent = dynamic(() => import('./session-content'), {
   ssr: false,
   loading: () => (
-    <div className="min-h-screen flex items-center justify-center bg-slate-900">
-      <div className="text-white">Loading session...</div>
+    <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-10 h-10 border-4 border-plum-200 border-t-plum-500 rounded-full animate-spin" />
+        <span className="text-text-secondary">Loading session...</span>
+      </div>
     </div>
   ),
 });
