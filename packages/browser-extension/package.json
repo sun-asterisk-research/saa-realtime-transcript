@@ -1,10 +1,11 @@
 {
-  "name": "soniox-meet-extension",
+  "name": "@sun-asterisk/meeting-trans-browser",
   "version": "1.0.0",
+  "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite build --watch --mode development",
-    "build": "npm run build:main && npm run build:content",
+    "build": "pnpm run build:main && pnpm run build:content",
     "build:content": "vite build --config vite.config.content.ts",
     "build:main": "vite build",
     "typecheck": "tsc --noEmit"
