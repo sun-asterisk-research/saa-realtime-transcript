@@ -9,7 +9,7 @@ import type {
   ClientSession,
 } from './types.js';
 import { TranscriptHandler } from './transcript-handler.js';
-import { verifyAuthToken } from './supabase.js';
+import { verifyAuthToken, isUserAuthorizedForSession } from './supabase.js';
 import { env } from './env.js';
 import { createLogger } from './logger.js';
 
@@ -290,6 +290,26 @@ async function handleClientMessage(
         }
 
         log.debug({ email: user.email }, 'User authenticated');
+
+        // Verify user is authorized for this session
+        const authResult = await isUserAuthorizedForSession(
+          config.sessionCode,
+          user.email || '',
+          user.id
+        );
+
+        if (!authResult.authorized) {
+          log.error({ email: user.email, sessionCode: config.sessionCode, reason: authResult.reason }, 'User not authorized for session');
+          sendToClient(connection.clientWs, {
+            type: 'error',
+            message: authResult.reason || 'Not authorized for this session',
+            code: 403,
+          } as ProxyError);
+          connection.clientWs.close(4003, authResult.reason || 'Not authorized for this session');
+          return;
+        }
+
+        log.debug({ email: user.email, sessionCode: config.sessionCode }, 'User authorized for session');
 
         // Store config for potential reconnection after idle pause
         connection.config = config;

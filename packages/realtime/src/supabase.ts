@@ -38,10 +38,97 @@ export async function verifyAuthToken(token: string): Promise<User | null> {
   return data.user;
 }
 
+interface SessionWithAccess {
+  id: string;
+  status: string;
+  creator_user_id: string | null;
+  is_public: boolean;
+  session_invitations: { id: string }[];
+  join_requests: { id: string }[];
+}
+
+/**
+ * Check if a user is authorized to access a session.
+ * A user is authorized if:
+ * - The session is public (is_public = true), OR
+ * - The user is the session creator, OR
+ * - The user has an accepted invitation, OR
+ * - The user has an approved join request
+ *
+ * Uses a single query with filtered relations to minimize round trips.
+ */
+export async function isUserAuthorizedForSession(
+  sessionCode: string,
+  userEmail: string,
+  userId: string
+): Promise<{ authorized: boolean; reason?: string }> {
+  const supabase = getSupabaseClient();
+
+  // Fetch session with filtered invitations and join requests in a single query
+  // Filters are applied to relations so only matching records are returned
+  const { data: session, error } = await supabase
+    .from('sessions')
+    .select(
+      `
+      id,
+      status,
+      creator_user_id,
+      is_public,
+      session_invitations!left(id),
+      join_requests!left(id)
+    `
+    )
+    .eq('code', sessionCode.toUpperCase())
+    .eq('session_invitations.email', userEmail)
+    .eq('session_invitations.status', 'accepted')
+    .eq('join_requests.email', userEmail)
+    .eq('join_requests.status', 'approved')
+    .single();
+
+  if (error || !session) {
+    if (error?.code === 'PGRST116') {
+      return { authorized: false, reason: 'Session not found' };
+    }
+    log.error({ sessionCode, err: error }, 'Session authorization check failed');
+    return { authorized: false, reason: 'Failed to verify session access' };
+  }
+
+  const typedSession = session as unknown as SessionWithAccess;
+
+  // Check if session has ended
+  if (typedSession.status === 'ended') {
+    return { authorized: false, reason: 'Session has ended' };
+  }
+
+  // Public sessions allow anyone
+  if (typedSession.is_public) {
+    return { authorized: true };
+  }
+
+  // Session creator is always authorized
+  if (typedSession.creator_user_id === userId) {
+    return { authorized: true };
+  }
+
+  // Check if user has accepted invitation (filtered at DB level)
+  if (typedSession.session_invitations?.length > 0) {
+    return { authorized: true };
+  }
+
+  // Check if user has approved join request (filtered at DB level)
+  if (typedSession.join_requests?.length > 0) {
+    return { authorized: true };
+  }
+
+  return { authorized: false, reason: 'Not authorized for this session' };
+}
+
 interface Session {
   id: string;
   code: string;
   status: string;
+  creator_user_id: string | null;
+  is_public: boolean;
 }
 
 // Cache for session lookups
@@ -57,7 +144,7 @@ export async function getSessionByCode(code: string): Promise<Session | null> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('sessions')
-    .select('id, code, status')
+    .select('id, code, status, creator_user_id, is_public')
     .eq('code', code.toUpperCase())
     .single();
 
