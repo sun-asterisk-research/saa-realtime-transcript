@@ -15,11 +15,11 @@
     "start:realtime": "pnpm --filter @sun-asterisk/meeting-trans-realtime start",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
-    "sb:genTypes": "pnpm --filter @sun-asterisk/meeting-trans-web sb:genTypes",
-    "sb:push": "pnpm --filter @sun-asterisk/meeting-trans-web sb:push",
-    "db:migrate": "pnpm --filter @sun-asterisk/meeting-trans-web db:migrate",
-    "db:reset": "pnpm --filter @sun-asterisk/meeting-trans-web db:reset",
-    "migration:create": "pnpm --filter @sun-asterisk/meeting-trans-web migration:create"
+    "supabase": "pnpm --filter @sun-asterisk/meeting-trans-supabase sb",
+    "sb:gen-types": "pnpm --filter @sun-asterisk/meeting-trans-supabase gen-types",
+    "db:reset": "pnpm --filter @sun-asterisk/meeting-trans-supabase db:reset",
+    "db:migrate": "pnpm --filter @sun-asterisk/meeting-trans-supabase db:migrate",
+    "db:new-migration": "pnpm --filter @sun-asterisk/meeting-trans-supabase db:new-migration"
   },
   "devDependencies": {
     "turbo": "^2.3.4"

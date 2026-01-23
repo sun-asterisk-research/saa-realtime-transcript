@@ -11,8 +11,8 @@ pnpm monorepo for real-time speech-to-text transcription and translation using t
 ```text
 packages/
   web/                 # Next.js 16 web application (@sun-asterisk/meeting-trans-web)
-    supabase/          # Database migrations and configuration
   realtime/            # WebSocket proxy server (@sun-asterisk/meeting-trans-realtime)
+  supabase/            # Shared Supabase types, queries & migrations (@sun-asterisk/meeting-trans-supabase)
   browser-extension/   # Chrome extension for Google Meet (@sun-asterisk/meeting-trans-browser)
 ```
 

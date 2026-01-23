@@ -7,12 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit",
-    "sb:genTypes": "supabase gen types typescript --local > ./src/lib/supabase/types.ts",
-    "sb:push": "supabase db push",
-    "db:migrate": "supabase migration up",
-    "db:reset": "supabase db reset",
-    "migration:create": "supabase migration new"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@ricky0123/vad-web": "^0.0.30",
@@ -36,7 +31,6 @@
     "eslint": "^9",
     "eslint-config-next": "15.1.4",
     "postcss": "^8",
-    "supabase": "^2.72.8",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
   }

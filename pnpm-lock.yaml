@@ -89,6 +89,12 @@ importers:
         specifier: ^5
         version: 5.9.3
 
+  packages/supabase:
+    devDependencies:
+      supabase:
+        specifier: ^2.72.8
+        version: 2.72.8
+
   packages/web:
     dependencies:
       '@ricky0123/vad-web':
@@ -149,9 +155,6 @@ importers:
       postcss:
         specifier: ^8
         version: 8.5.6
-      supabase:
-        specifier: ^2.72.8
-        version: 2.72.8
       tailwindcss:
         specifier: ^3.4.1
         version: 3.4.19(tsx@4.21.0)

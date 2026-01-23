@@ -1,0 +1,17 @@
+{
+  "name": "@sun-asterisk/meeting-trans-supabase",
+  "version": "0.0.0",
+  "main": "index.js",
+  "scripts": {
+    "sb": "supabase",
+    "start": "supabase start",
+    "stop": "supabase stop",
+    "gen-types": "supabase gen types typescript --local > ./src/types.ts",
+    "db:migrate": "supabase migration up",
+    "db:new-migration": "supabase migration new"
+  },
+  "packageManager": "pnpm@10.24.0",
+  "devDependencies": {
+    "supabase": "^2.72.8"
+  }
+}
