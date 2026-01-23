@@ -2,6 +2,7 @@
 {{- include "tplchart.ingress" (dict
   "context" .
   "Args" (dict
+    "nameTemplate" "%s-realtime"
     "component" "realtime"
     "service" (dict
       "nameTemplate" "%s-realtime"

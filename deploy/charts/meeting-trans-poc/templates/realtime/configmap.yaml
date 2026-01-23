@@ -5,11 +5,10 @@ IDLE_TIMEOUT_MS: {{ .Values.config.realtime.idleTimeoutMs | quote }}
 SUPABASE_URL: {{ .Values.supabase.url | quote }}
 {{- end -}}
 
-{{- include "tplchart.secret" (dict
+{{- include "tplchart.configMap" (dict
   "Args" (dict
     "nameTemplate" "%s-realtime"
-    "nameTemplate" "realtime"
-    "stringData" (include "meeting-trans-poc.realtime.envCM" .)
+    "data" (include "meeting-trans-poc.realtime.envCM" .)
   )
   "context" .
 ) -}}

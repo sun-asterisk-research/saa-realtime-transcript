@@ -1,6 +1,7 @@
 {{- include "tplchart.service" (dict
   "context" .
   "Args" (dict
+    "nameTemplate" "%s"
     "component" "web"
     "ports" (dict
       "http" .Values.web.service.ports.http

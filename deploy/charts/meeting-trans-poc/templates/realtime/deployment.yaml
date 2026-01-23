@@ -11,6 +11,9 @@
     "ports" (dict
       "ws" 3000
     )
+    "envVarsCMs" (list
+      (dict "nameTemplate" "%s-realtime")
+    )
     "envVarsSecrets" (list
       (dict "nameTemplate" "%s-realtime")
     )

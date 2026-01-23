@@ -2,8 +2,10 @@
 {{- include "tplchart.ingress" (dict
   "context" .
   "Args" (dict
+    "nameTemplate" "%s"
     "component" "web"
     "service" (dict
+      "nameTemplate" "%s"
       "port" "http"
     )
   )
