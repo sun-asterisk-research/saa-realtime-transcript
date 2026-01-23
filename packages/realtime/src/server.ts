@@ -1,3 +1,4 @@
+import { createServer } from 'http';
 import { WebSocketServer, WebSocket, RawData } from 'ws';
 import type {
   ClientConfig,
@@ -373,9 +374,37 @@ async function handleClientMessage(
 }
 
 function startServer(): void {
-  const wss = new WebSocketServer({ port: env.PORT });
+  const server = createServer((req, res) => {
+    // Health check endpoint
+    if (req.url === '/health') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ status: 'ok' }));
+      return;
+    }
+    res.writeHead(404);
+    res.end();
+  });
 
-  log.info({ port: env.PORT }, 'Realtime proxy server started');
+  const wss = new WebSocketServer({ noServer: true });
+
+  server.on('upgrade', (request, socket, head) => {
+    const pathname = new URL(request.url || '', `http://${request.headers.host}`).pathname;
+
+    // Accept all paths if WS_PATH is '/', otherwise match exactly
+    if (env.WS_PATH === '/' || pathname === env.WS_PATH) {
+      wss.handleUpgrade(request, socket, head, (ws) => {
+        wss.emit('connection', ws, request);
+      });
+    } else {
+      log.debug({ pathname, expected: env.WS_PATH }, 'Rejected WebSocket connection on invalid path');
+      socket.write('HTTP/1.1 404 Not Found\r\n\r\n');
+      socket.destroy();
+    }
+  });
+
+  server.listen(env.PORT, () => {
+    log.info({ port: env.PORT, path: env.WS_PATH }, 'Realtime proxy server started');
+  });
 
   wss.on('connection', (clientWs: WebSocket) => {
     log.debug('New client connection');
@@ -428,8 +457,10 @@ function startServer(): void {
   process.on('SIGINT', () => {
     log.info('Shutting down server...');
     wss.close(() => {
-      log.info('Server closed');
-      process.exit(0);
+      server.close(() => {
+        log.info('Server closed');
+        process.exit(0);
+      });
     });
   });
 }

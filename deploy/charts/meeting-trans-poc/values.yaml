@@ -5,6 +5,7 @@ config:
   realtime:
     logLevel: "info"
     idleTimeoutMs: 300_000
+    wsPath: "/"
 
 supabase:
   url: ""

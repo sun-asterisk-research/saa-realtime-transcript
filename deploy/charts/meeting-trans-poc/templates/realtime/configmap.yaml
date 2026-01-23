@@ -2,6 +2,7 @@
 LOG_LEVEL: {{ .Values.config.realtime.logLevel | quote }}
 PORT: "3000"
 IDLE_TIMEOUT_MS: {{ .Values.config.realtime.idleTimeoutMs | quote }}
+WS_PATH: {{ .Values.config.realtime.wsPath | quote }}
 SUPABASE_URL: {{ .Values.supabase.url | quote }}
 {{- end -}}
 

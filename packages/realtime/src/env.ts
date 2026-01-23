@@ -10,6 +10,7 @@ const envSchema = z.object({
 
   // WebSocket Server
   PORT: z.coerce.number().int().positive().default(3001),
+  WS_PATH: z.string().default('/'),
 
   // Idle timeout for Soniox connections (in milliseconds)
   IDLE_TIMEOUT_MS: z.coerce.number().int().positive().default(300_000),
