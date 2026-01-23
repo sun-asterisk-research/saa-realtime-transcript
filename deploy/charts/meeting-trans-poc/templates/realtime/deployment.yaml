@@ -1,0 +1,21 @@
+{{- $args := dict
+  "nameTemplate" "%s-realtime"
+  "component" "realtime"
+  "checksumAnnotations" (dict
+    "envCM" "realtime/configmap.yaml"
+    "envSecret" "realtime/secret.yaml"
+  )
+  "container" (dict
+    "name" "meeting-trans-realtime"
+    "image" .Values.realtime.image
+    "ports" (dict
+      "ws" 3000
+    )
+    "envVarsSecrets" (list
+      (dict "nameTemplate" "%s-realtime")
+    )
+  )
+  "serviceAccount" .Values.serviceAccount
+-}}
+
+{{ include "tplchart.deployment" (dict "context" . "Args" $args "Scope" "realtime") }}

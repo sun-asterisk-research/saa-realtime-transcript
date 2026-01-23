@@ -1,0 +1,19 @@
+{{- $args := dict
+  "nameTemplate" "%s"
+  "checksumAnnotations" (dict
+    "envSecret" "web/secret.yaml"
+  )
+  "container" (dict
+    "name" "meeting-trans"
+    "image" .Values.web.image
+    "ports" (dict
+      "http" 3000
+    )
+    "envVarsSecrets" (list
+      (dict "nameTemplate" "%s")
+    )
+  )
+  "serviceAccount" .Values.serviceAccount
+-}}
+
+{{ include "tplchart.deployment" (dict "context" . "Args" $args "Scope" "web") }}

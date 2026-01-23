@@ -1,0 +1,11 @@
+{{- include "tplchart.service" (dict
+  "context" .
+  "Args" (dict
+    "nameTemplate" "%s-realtime"
+    "component" "realtime"
+    "ports" (dict
+      "http" .Values.realtime.service.ports.http
+    )
+  )
+  "Scope" "realtime"
+) -}}

@@ -1,0 +1,15 @@
+{{- define "meeting-trans-poc.realtime.envCM" -}}
+LOG_LEVEL: {{ .Values.config.realtime.logLevel | quote }}
+PORT: "3000"
+IDLE_TIMEOUT_MS: {{ .Values.config.realtime.idleTimeoutMs | quote }}
+SUPABASE_URL: {{ .Values.supabase.url | quote }}
+{{- end -}}
+
+{{- include "tplchart.secret" (dict
+  "Args" (dict
+    "nameTemplate" "%s-realtime"
+    "nameTemplate" "realtime"
+    "stringData" (include "meeting-trans-poc.realtime.envCM" .)
+  )
+  "context" .
+) -}}

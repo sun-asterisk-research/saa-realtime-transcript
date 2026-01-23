@@ -1,0 +1,10 @@
+{{- include "tplchart.service" (dict
+  "context" .
+  "Args" (dict
+    "component" "web"
+    "ports" (dict
+      "http" .Values.web.service.ports.http
+    )
+  )
+  "Scope" "web"
+) -}}

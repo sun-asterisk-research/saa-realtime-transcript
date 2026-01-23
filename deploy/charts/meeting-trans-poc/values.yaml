@@ -1,0 +1,137 @@
+global:
+  imagePullSecrets: []
+
+config:
+  realtime:
+    logLevel: "info"
+    idleTimeoutMs: 300_000
+
+supabase:
+  url: ""
+  publishableKey: ""
+  serviceRoleKey: ""
+
+soniox:
+  apiKey: ""
+
+web:
+  enabled: true
+  image:
+    registry: harbor.sun-asterisk.vn
+    repository: sai-poc/meeting-trans/web
+    tag: latest
+    pullPolicy: IfNotPresent
+    pullSecrets: []
+  replicaCount: 1
+
+  service:
+    type: ClusterIP
+    labels: {}
+    annotations: {}
+    ports:
+      http: 3000
+    nodePorts:
+      http: ""
+    clusterIP: ""
+    loadBalancerIP: ""
+    loadBalancerSourceRanges: []
+    externalTrafficPolicy: Cluster
+    sessionAffinity:
+
+  podAffinityPreset: ""
+  podAntiAffinityPreset: "soft"
+
+  nodeAffinityPreset:
+    type: ""
+    key: ""
+    values: []
+
+  affinity: {}
+
+  nodeSelector: {}
+
+  tolerations: []
+
+  topologySpreadConstraints: []
+
+  podSecurityContext:
+    enabled: false
+
+  containerSecurityContext:
+    enabled: false
+
+  resources:
+    limits: {}
+    requests: {}
+
+  ingress:
+    enabled: false
+    ingressClassName: ""
+    annotations: {}
+    hostname: meeting-trans-poc.local
+    path: /
+    pathType: ImplementationSpecific
+    tls: false
+
+
+realtime:
+  enabled: true
+  image:
+    registry: harbor.sun-asterisk.vn
+    repository: sai-poc/meeting-trans/realtime
+    tag: latest
+    pullPolicy: IfNotPresent
+    pullSecrets: []
+  replicaCount: 1
+
+  service:
+    type: ClusterIP
+    labels: {}
+    annotations: {}
+    ports:
+      http: 3000
+    nodePorts:
+      http: ""
+    clusterIP: ""
+    loadBalancerIP: ""
+    loadBalancerSourceRanges: []
+    externalTrafficPolicy: Cluster
+    sessionAffinity:
+
+  podAffinityPreset: ""
+  podAntiAffinityPreset: "soft"
+
+  nodeAffinityPreset:
+    type: ""
+    key: ""
+    values: []
+
+  affinity: {}
+
+  nodeSelector: {}
+
+  tolerations: []
+
+  topologySpreadConstraints: []
+
+  podSecurityContext:
+    enabled: false
+
+  containerSecurityContext:
+    enabled: false
+
+  resources:
+    limits: {}
+    requests: {}
+
+  ingress:
+    enabled: false
+    ingressClassName: ""
+    annotations: {}
+    hostname: meeting-trans-poc.local
+    path: /
+    pathType: ImplementationSpecific
+    tls: false
+
+serviceAccount:
+  create: false

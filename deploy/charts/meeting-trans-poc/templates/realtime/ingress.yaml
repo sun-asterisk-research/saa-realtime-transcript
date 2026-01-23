@@ -1,0 +1,13 @@
+{{- if .Values.realtime.ingress.enabled -}}
+{{- include "tplchart.ingress" (dict
+  "context" .
+  "Args" (dict
+    "component" "realtime"
+    "service" (dict
+      "nameTemplate" "%s-realtime"
+      "port" "ws"
+    )
+  )
+  "Scope" "realtime"
+) -}}
+{{- end -}}
