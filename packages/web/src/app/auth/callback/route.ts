@@ -7,7 +7,14 @@ export async function GET(request: NextRequest) {
   const code = requestUrl.searchParams.get("code");
   const next = requestUrl.searchParams.get("next") || "/";
 
-  const response = NextResponse.redirect(new URL(next, requestUrl.origin));
+  // Use forwarded headers when behind a reverse proxy, fallback to request origin
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const forwardedProto = request.headers.get("x-forwarded-proto") || "https";
+  const origin = forwardedHost
+    ? `${forwardedProto}://${forwardedHost}`
+    : requestUrl.origin;
+
+  const response = NextResponse.redirect(new URL(next, origin));
 
   if (code) {
     const cookieStore = await cookies();
@@ -43,7 +50,7 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.error("Auth callback error:", error);
       return NextResponse.redirect(
-        new URL("/login?error=auth_failed", requestUrl.origin),
+        new URL("/login?error=auth_failed", origin),
       );
     }
 
