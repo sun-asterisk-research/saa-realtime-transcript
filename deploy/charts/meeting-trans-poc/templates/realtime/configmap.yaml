@@ -9,6 +9,7 @@ SUPABASE_URL: {{ .Values.supabase.url | quote }}
 {{- include "tplchart.configMap" (dict
   "Args" (dict
     "nameTemplate" "%s-realtime"
+    "component" "realtime"
     "data" (include "meeting-trans-poc.realtime.envCM" .)
   )
   "context" .

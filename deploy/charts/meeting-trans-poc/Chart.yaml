@@ -2,8 +2,8 @@ apiVersion: v2
 name: meeting-trans-poc
 description: A Helm chart for deploying the Meeting Transcription POC application
 type: application
-version: 0.1.0
-appVersion: "0.1.0"
+version: 0.1.1
+appVersion: "0.1.1"
 dependencies:
 - name: tplchart
   repository: oci://ghcr.io/sun-asterisk-research/helm-charts
