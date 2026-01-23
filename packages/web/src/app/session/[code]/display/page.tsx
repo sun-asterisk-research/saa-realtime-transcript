@@ -6,7 +6,6 @@ import { useSession } from '@/lib/hooks/useSession';
 import { useTranscripts } from '@/lib/hooks/useTranscripts';
 import { Select } from '@/components/select';
 import { FloatingBilingualButton } from '@/components/FloatingBilingualButton';
-import { BilingualTranscriptDisplay } from '@/components/BilingualTranscriptDisplay';
 import { BilingualTwoColumnLayout } from '@/components/BilingualTwoColumnLayout';
 import { useBilingualMode } from '@/contexts/BilingualModeContext';
 import type { Token } from '@soniox/speech-to-text-web';
@@ -14,8 +13,8 @@ import type { Token } from '@soniox/speech-to-text-web';
 // Generate color for speaker diarization (supports up to 15 speakers)
 function getSpeakerColor(speakerId: string): string {
   const colors = [
-    'text-blue-400',    // Speaker 1
-    'text-green-400',   // Speaker 2
+    'text-plum-400',    // Speaker 1
+    'text-emerald-400', // Speaker 2
     'text-purple-400',  // Speaker 3
     'text-pink-400',    // Speaker 4
     'text-cyan-400',    // Speaker 5
@@ -27,7 +26,7 @@ function getSpeakerColor(speakerId: string): string {
     'text-lime-400',    // Speaker 11
     'text-rose-400',    // Speaker 12
     'text-amber-400',   // Speaker 13
-    'text-emerald-400', // Speaker 14
+    'text-sky-400',     // Speaker 14
     'text-fuchsia-400', // Speaker 15
   ];
   const index = parseInt(speakerId, 10) - 1; // Speaker IDs are 1-based
@@ -249,57 +248,93 @@ export default function DisplayPage({ params }: { params: Promise<{ code: string
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#092432]">
-        <div className="text-white text-2xl">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-plum-950 via-plum-900 to-plum-950">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-plum-700 border-t-plum-400 rounded-full animate-spin" />
+          <span className="text-white/80 text-xl">Loading...</span>
+        </div>
       </div>
     );
   }
 
   if (error || !session) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#092432]">
-        <div className="text-red-400 text-2xl">Session not found</div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-plum-950 via-plum-900 to-plum-950">
+        <div className="text-center">
+          <div className="w-20 h-20 bg-red-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <svg className="w-10 h-10 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <h2 className="text-red-400 text-2xl font-semibold">Session not found</h2>
+        </div>
       </div>
     );
   }
 
   if (session.status === 'ended') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#092432]">
-        <div className="text-slate-400 text-2xl">Session has ended</div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-plum-950 via-plum-900 to-plum-950">
+        <div className="text-center">
+          <div className="w-20 h-20 bg-plum-800/50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <svg className="w-10 h-10 text-plum-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <h2 className="text-plum-300 text-2xl font-semibold">Session has ended</h2>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="h-screen flex flex-col bg-[#092432]">
+    <div className="h-screen flex flex-col bg-gradient-to-br from-plum-950 via-plum-900 to-plum-950">
       {/* Header - Fixed */}
-      <div className="flex-shrink-0 p-4 border-b border-slate-700/50 flex items-center justify-between">
-        <div>
-          <h1 className="text-white text-lg font-medium">Session: {code}</h1>
-          <div className="text-slate-400 text-sm">
-            {session.mode === 'one_way' ? 'One-way' : 'Two-way'} Translation
-            {session.mode === 'one_way' && ` → ${session.target_language?.toUpperCase()}`}
-            {session.mode === 'two_way' && ` (${session.language_a?.toUpperCase()} ↔ ${session.language_b?.toUpperCase()})`}
+      <div className="flex-shrink-0 px-6 py-4 border-b border-white/10 backdrop-blur-sm bg-black/20 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          {/* Logo/Icon */}
+          <div className="w-10 h-10 bg-gradient-to-br from-plum-500 to-plum-700 rounded-xl flex items-center justify-center shadow-lg shadow-plum-500/30">
+            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+            </svg>
+          </div>
+          <div>
+            <h1 className="text-white text-lg font-semibold flex items-center gap-2">
+              Session: <span className="font-mono text-plum-300">{code}</span>
+            </h1>
+            <div className="text-white/60 text-sm">
+              {session.mode === 'one_way' ? 'One-way' : 'Two-way'} Translation
+              {session.mode === 'one_way' && (
+                <span className="text-plum-400 ml-1">→ {session.target_language?.toUpperCase()}</span>
+              )}
+              {session.mode === 'two_way' && (
+                <span className="text-plum-400 ml-1">
+                  ({session.language_a?.toUpperCase()} ↔ {session.language_b?.toUpperCase()})
+                </span>
+              )}
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-4">
           {/* Language Selector - only for two-way mode, hidden in bilingual mode */}
           {session.mode === 'two_way' && session.language_a && session.language_b && !isBilingualMode && (
-            <Select
+            <select
               value={displayLanguage}
               onChange={(e) => handleLanguageChange(e.target.value)}
-              className="text-white text-sm bg-slate-800 border-slate-600 w-20">
-              <option value={session.language_a}>{session.language_a.toUpperCase()}</option>
-              <option value={session.language_b}>{session.language_b.toUpperCase()}</option>
-            </Select>
+              className="px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white text-sm focus:outline-none focus:ring-2 focus:ring-plum-500 focus:border-transparent"
+            >
+              <option value={session.language_a} className="bg-plum-900 text-white">{session.language_a.toUpperCase()}</option>
+              <option value={session.language_b} className="bg-plum-900 text-white">{session.language_b.toUpperCase()}</option>
+            </select>
           )}
           {isBilingualMode && (
-            <span className="text-slate-400 text-sm">Bilingual Mode</span>
+            <span className="px-3 py-1.5 rounded-full bg-plum-500/30 border border-plum-500/50 text-plum-200 text-sm font-medium">
+              Bilingual Mode
+            </span>
           )}
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-green-400 text-sm">Live</span>
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/30">
+            <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-lg shadow-emerald-400/50" />
+            <span className="text-emerald-300 text-sm font-medium">Live</span>
           </div>
         </div>
       </div>
@@ -327,18 +362,18 @@ export default function DisplayPage({ params }: { params: Promise<{ code: string
               const enableDiarization = session.enable_speaker_diarization && t.speaker_id;
               const textColor = enableDiarization
                 ? getSpeakerColor(t.speaker_id!)
-                : 'text-blue-400';
+                : 'text-plum-400';
               return (
                 <div
                   key={t.id}
                   className="text-white animate-fadeIn"
                   style={{ animationDelay: `${index * 0.05}s` }}
                 >
-                  <span className={`${textColor} font-medium text-lg`}>
+                  <span className={`${textColor} font-semibold text-lg`}>
                     {t.participant_name}
                     {enableDiarization && ` (Speaker ${t.speaker_id})`}:{' '}
                   </span>
-                  <span className="text-2xl md:text-3xl leading-relaxed">
+                  <span className="text-2xl md:text-3xl leading-relaxed text-white/95">
                     {getDisplayText(t, displayLanguage, session.mode)}
                   </span>
                 </div>
@@ -350,7 +385,7 @@ export default function DisplayPage({ params }: { params: Promise<{ code: string
               const enableDiarization = session.enable_speaker_diarization && data.speakerId;
               const textColor = enableDiarization
                 ? getSpeakerColor(data.speakerId!)
-                : 'text-yellow-400';
+                : 'text-amber-400';
               const displayText = getDisplayText(
                 {
                   original_text: data.text,
@@ -362,15 +397,15 @@ export default function DisplayPage({ params }: { params: Promise<{ code: string
                 session.mode
               );
               return (
-                <div key={id} className="text-yellow-300">
-                  <span className={`${textColor} font-medium text-lg`}>
+                <div key={id} className="text-amber-100">
+                  <span className={`${textColor} font-semibold text-lg`}>
                     {data.participantName}
                     {enableDiarization && ` (Speaker ${data.speakerId})`}:{' '}
                   </span>
                   <span className="text-2xl md:text-3xl leading-relaxed">
                     {displayText}
                   </span>
-                  <span className="inline-block w-2 h-6 bg-yellow-400 ml-1 animate-blink" />
+                  <span className="inline-block w-2 h-6 bg-amber-400 ml-1 animate-blink rounded-sm" />
                 </div>
               );
             })}
@@ -379,10 +414,15 @@ export default function DisplayPage({ params }: { params: Promise<{ code: string
 
             {/* Empty state */}
             {transcripts.length === 0 && streamingTranscripts.size === 0 && (
-              <div className="flex items-center justify-center h-full">
+              <div className="flex items-center justify-center h-[60vh]">
                 <div className="text-center">
-                  <div className="text-slate-500 text-2xl mb-2">Waiting for participants to speak...</div>
-                  <div className="text-slate-600 text-sm">Transcripts will appear here in real-time</div>
+                  <div className="w-24 h-24 bg-white/5 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-white/10">
+                    <svg className="w-12 h-12 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-white/60 text-2xl font-medium mb-2">Waiting for participants to speak...</h3>
+                  <p className="text-white/40 text-lg">Transcripts will appear here in real-time</p>
                 </div>
               </div>
             )}
@@ -390,9 +430,12 @@ export default function DisplayPage({ params }: { params: Promise<{ code: string
         )}
       </div>
 
-      {/* Footer - Participant count */}
-      <div className="flex-shrink-0 p-3 border-t border-slate-700/50 text-center">
-        <span className="text-slate-500 text-sm">
+      {/* Footer - Transcript count */}
+      <div className="flex-shrink-0 px-6 py-3 border-t border-white/10 backdrop-blur-sm bg-black/20 flex items-center justify-center">
+        <span className="text-white/50 text-sm flex items-center gap-2">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
           {transcripts.length} transcript{transcripts.length !== 1 ? 's' : ''}
         </span>
       </div>

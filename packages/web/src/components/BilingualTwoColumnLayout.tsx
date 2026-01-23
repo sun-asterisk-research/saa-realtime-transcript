@@ -29,7 +29,7 @@ export function BilingualTwoColumnLayout({
 }: BilingualTwoColumnLayoutProps) {
   if (items.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full text-slate-400">
+      <div className="flex items-center justify-center h-full text-white/50">
         <p>Waiting for transcription...</p>
       </div>
     );
@@ -40,30 +40,33 @@ export function BilingualTwoColumnLayout({
     return (
       <div className="grid grid-cols-2 gap-8">
         {/* Left Column - Original Language */}
-        <div className="border-r border-slate-700 pr-6">
-          <div className="sticky top-0 z-20 bg-[#092432] pt-6 pb-4 mb-4 border-b border-slate-500/50 shadow-lg -mt-6">
-            <h3 className="text-slate-300 font-semibold text-lg uppercase tracking-wide">
+        <div className="border-r border-white/10 pr-6">
+          <div className="sticky top-0 z-20 bg-gradient-to-b from-plum-800 to-plum-800/95 pt-6 pb-4 mb-4 border-b border-white/10 shadow-lg -mt-6 backdrop-blur-sm">
+            <h3 className="text-plum-200 font-semibold text-lg uppercase tracking-wide flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+              </svg>
               Original Language
             </h3>
           </div>
           <div className="space-y-4">
             {items.map((item) => (
-              <div key={`original-${item.id}`} className="text-white">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-blue-400 font-medium text-sm">
+              <div key={`original-${item.id}`} className="text-white animate-fadeIn">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="text-plum-300 font-medium text-sm">
                     {item.participantName}
                     {item.speaker && ` (Speaker ${item.speaker})`}
                   </span>
                   {item.sourceLanguage && (
-                    <span className="bg-slate-700 text-slate-300 text-xs px-2 py-0.5 rounded-full font-medium">
+                    <span className="bg-white/10 text-plum-200 text-xs px-2 py-0.5 rounded-full font-medium">
                       {item.sourceLanguage.toUpperCase()}
                     </span>
                   )}
                 </div>
-                <p className="text-white text-2xl">
+                <p className="text-white text-xl leading-relaxed">
                   {item.originalText}
                   {item.isStreaming && (
-                    <span className="inline-block w-2 h-6 bg-yellow-400 ml-1 animate-blink" />
+                    <span className="inline-block w-2 h-5 bg-plum-400 ml-1.5 animate-blink rounded-sm" />
                   )}
                 </p>
               </div>
@@ -73,34 +76,47 @@ export function BilingualTwoColumnLayout({
 
         {/* Right Column - Translated Language */}
         <div className="pl-6">
-          <div className="sticky top-0 z-20 bg-[#092432] pt-6 pb-4 mb-4 border-b border-slate-500/50 shadow-lg -mt-6">
-            <h3 className="text-slate-300 font-semibold text-lg uppercase tracking-wide">
+          <div className="sticky top-0 z-20 bg-gradient-to-b from-plum-800 to-plum-800/95 pt-6 pb-4 mb-4 border-b border-white/10 shadow-lg -mt-6 backdrop-blur-sm">
+            <h3 className="text-plum-200 font-semibold text-lg uppercase tracking-wide flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+              </svg>
               Translated ({targetLanguage?.toUpperCase()})
             </h3>
           </div>
           <div className="space-y-4">
             {items.map((item) => (
-              <div key={`translated-${item.id}`} className="text-white">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-blue-400 font-medium text-sm">
+              <div key={`translated-${item.id}`} className="text-white animate-fadeIn">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="text-plum-300 font-medium text-sm">
                     {item.participantName}
                     {item.speaker && ` (Speaker ${item.speaker})`}
-                    <span className="text-green-500 text-xs ml-1">(translated)</span>
+                    {item.sourceLanguage?.toLowerCase() === targetLanguage?.toLowerCase() ? (
+                      <span className="text-amber-400 text-xs ml-1.5">(same language)</span>
+                    ) : (
+                      <span className="text-emerald-400 text-xs ml-1.5">(translated)</span>
+                    )}
                   </span>
                   {item.targetLanguage && (
-                    <span className="bg-slate-700 text-slate-300 text-xs px-2 py-0.5 rounded-full font-medium">
+                    <span className="bg-white/10 text-plum-200 text-xs px-2 py-0.5 rounded-full font-medium">
                       {item.targetLanguage.toUpperCase()}
                     </span>
                   )}
                 </div>
-                <p className="text-white text-2xl">
-                  {item.translatedText || (
-                    <span className="italic text-slate-500">
-                      {item.isStreaming ? 'Translating...' : 'No translation'}
+                <p className="text-white text-xl leading-relaxed">
+                  {item.translatedText ? (
+                    <>
+                      {item.translatedText}
+                      {item.isStreaming && (
+                        <span className="inline-block w-2 h-5 bg-plum-400 ml-1.5 animate-blink rounded-sm" />
+                      )}
+                    </>
+                  ) : item.sourceLanguage?.toLowerCase() === targetLanguage?.toLowerCase() ? (
+                    <span className="text-white/60">{item.originalText}</span>
+                  ) : (
+                    <span className="italic text-white/40">
+                      {item.isStreaming ? 'Translating...' : 'Waiting for translation...'}
                     </span>
-                  )}
-                  {item.isStreaming && item.translatedText && (
-                    <span className="inline-block w-2 h-6 bg-yellow-400 ml-1 animate-blink" />
                   )}
                 </p>
               </div>
@@ -118,9 +134,12 @@ export function BilingualTwoColumnLayout({
   return (
     <div className="grid grid-cols-2 gap-8">
       {/* Left Column - Language A */}
-      <div className="border-r border-slate-700 pr-6">
-        <div className="sticky top-0 z-20 bg-[#092432] pt-6 pb-4 mb-4 border-b border-slate-500/50 shadow-lg -mt-6">
-          <h3 className="text-slate-300 font-semibold text-lg uppercase tracking-wide">
+      <div className="border-r border-white/10 pr-6">
+        <div className="sticky top-0 z-20 bg-gradient-to-b from-plum-800 to-plum-800/95 pt-6 pb-4 mb-4 border-b border-white/10 shadow-lg -mt-6 backdrop-blur-sm">
+          <h3 className="text-plum-200 font-semibold text-lg uppercase tracking-wide flex items-center gap-2">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+            </svg>
             {langACode}
           </h3>
         </div>
@@ -137,21 +156,21 @@ export function BilingualTwoColumnLayout({
             if (!displayText) return null;
 
             return (
-              <div key={`langA-${item.id}`} className="text-white">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-blue-400 font-medium text-sm">
+              <div key={`langA-${item.id}`} className="text-white animate-fadeIn">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="text-plum-300 font-medium text-sm">
                     {item.participantName}
                     {item.speaker && ` (Speaker ${item.speaker})`}
-                    {isTranslated && <span className="text-green-500 text-xs ml-1">(translated)</span>}
+                    {isTranslated && <span className="text-emerald-400 text-xs ml-1.5">(translated)</span>}
                   </span>
-                  <span className="bg-slate-700 text-slate-300 text-xs px-2 py-0.5 rounded-full font-medium">
+                  <span className="bg-white/10 text-plum-200 text-xs px-2 py-0.5 rounded-full font-medium">
                     {langACode}
                   </span>
                 </div>
-                <p className="text-white text-2xl">
+                <p className="text-white text-xl leading-relaxed">
                   {displayText}
                   {item.isStreaming && (
-                    <span className="inline-block w-2 h-6 ml-1 animate-blink bg-yellow-400" />
+                    <span className="inline-block w-2 h-5 ml-1.5 animate-blink bg-plum-400 rounded-sm" />
                   )}
                 </p>
               </div>
@@ -162,8 +181,11 @@ export function BilingualTwoColumnLayout({
 
       {/* Right Column - Language B */}
       <div className="pl-6">
-        <div className="sticky top-0 z-20 bg-[#092432] pt-6 pb-4 mb-4 border-b border-slate-500/50 shadow-lg -mt-6">
-          <h3 className="text-slate-300 font-semibold text-lg uppercase tracking-wide">
+        <div className="sticky top-0 z-20 bg-gradient-to-b from-plum-800 to-plum-800/95 pt-6 pb-4 mb-4 border-b border-white/10 shadow-lg -mt-6 backdrop-blur-sm">
+          <h3 className="text-plum-200 font-semibold text-lg uppercase tracking-wide flex items-center gap-2">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+            </svg>
             {langBCode}
           </h3>
         </div>
@@ -180,21 +202,21 @@ export function BilingualTwoColumnLayout({
             if (!displayText) return null;
 
             return (
-              <div key={`langB-${item.id}`} className="text-white">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-blue-400 font-medium text-sm">
+              <div key={`langB-${item.id}`} className="text-white animate-fadeIn">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="text-plum-300 font-medium text-sm">
                     {item.participantName}
                     {item.speaker && ` (Speaker ${item.speaker})`}
-                    {isTranslated && <span className="text-green-500 text-xs ml-1">(translated)</span>}
+                    {isTranslated && <span className="text-emerald-400 text-xs ml-1.5">(translated)</span>}
                   </span>
-                  <span className="bg-slate-700 text-slate-300 text-xs px-2 py-0.5 rounded-full font-medium">
+                  <span className="bg-white/10 text-plum-200 text-xs px-2 py-0.5 rounded-full font-medium">
                     {langBCode}
                   </span>
                 </div>
-                <p className="text-white text-2xl">
+                <p className="text-white text-xl leading-relaxed">
                   {displayText}
                   {item.isStreaming && (
-                    <span className="inline-block w-2 h-6 ml-1 animate-blink bg-yellow-400" />
+                    <span className="inline-block w-2 h-5 ml-1.5 animate-blink bg-plum-400 rounded-sm" />
                   )}
                 </p>
               </div>

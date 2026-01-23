@@ -151,25 +151,37 @@ export default function Dashboard() {
 
   if (isUserLoading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-slate-900 to-slate-800">
-        <div className="text-slate-400">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-white relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-64 h-64 bg-gradient-to-br from-plum-400 to-plum-600 blob opacity-50 -translate-x-1/2 -translate-y-1/2" />
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-tl from-plum-500 to-plum-700 blob-2 opacity-40 translate-x-1/3 translate-y-1/3" />
+        <div className="text-text-muted relative z-10">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-800 p-6">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-white relative overflow-hidden">
+      {/* Decorative Blobs */}
+      <div className="absolute top-0 left-0 w-72 h-72 bg-gradient-to-br from-plum-400 to-plum-600 blob opacity-60 -translate-x-1/3 -translate-y-1/3" />
+      <div className="absolute top-1/2 right-0 w-48 h-48 bg-plum-300 blob-2 opacity-40 translate-x-1/3" />
+      <div className="absolute bottom-0 left-1/4 w-64 h-64 bg-gradient-to-tr from-plum-500 to-plum-700 blob-3 opacity-30 translate-y-1/3" />
+
+      <div className="relative z-10 p-6 max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <Link href="/" className="text-slate-400 hover:text-white mb-2 inline-block">
-              &larr; Back to Home
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 text-plum-600 hover:text-plum-700 mb-3 text-sm font-medium transition-colors">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Back to Home
             </Link>
-            <h1 className="text-3xl font-bold text-white">My Sessions</h1>
+            <h1 className="text-3xl font-bold text-text-primary">My Sessions</h1>
           </div>
           <Link href="/create">
-            <Button className="bg-blue-600 border-blue-600 text-white hover:bg-blue-700">
+            <Button variant="primary">
               Create New Session
             </Button>
           </Link>
@@ -177,58 +189,64 @@ export default function Dashboard() {
 
         {/* Error Display */}
         {error && (
-          <div className="bg-red-600/10 border border-red-600/30 rounded-lg p-4 mb-6 text-red-400">
-            {error}
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6 text-red-600 flex items-start gap-3">
+            <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <span>{error}</span>
           </div>
         )}
 
         {/* Tabs */}
-        <div className="flex gap-4 border-b border-slate-700 mb-6">
+        <div className="flex gap-1 bg-surface-muted p-1 rounded-xl mb-6 w-fit">
           <button
             onClick={() => setActiveTab('active')}
-            className={`pb-3 px-4 transition-colors ${
+            className={`px-6 py-2.5 rounded-lg text-sm font-medium transition-all ${
               activeTab === 'active'
-                ? 'border-b-2 border-blue-500 text-white font-medium'
-                : 'text-slate-400 hover:text-slate-300'
-            }`}
-          >
+                ? 'bg-white text-plum-600 shadow-sm'
+                : 'text-text-muted hover:text-text-primary'
+            }`}>
             Active ({activeSessions.length})
           </button>
           <button
             onClick={() => setActiveTab('upcoming')}
-            className={`pb-3 px-4 transition-colors ${
+            className={`px-6 py-2.5 rounded-lg text-sm font-medium transition-all ${
               activeTab === 'upcoming'
-                ? 'border-b-2 border-blue-500 text-white font-medium'
-                : 'text-slate-400 hover:text-slate-300'
-            }`}
-          >
+                ? 'bg-white text-plum-600 shadow-sm'
+                : 'text-text-muted hover:text-text-primary'
+            }`}>
             Upcoming ({upcomingSessions.length})
           </button>
           <button
             onClick={() => setActiveTab('past')}
-            className={`pb-3 px-4 transition-colors ${
+            className={`px-6 py-2.5 rounded-lg text-sm font-medium transition-all ${
               activeTab === 'past'
-                ? 'border-b-2 border-blue-500 text-white font-medium'
-                : 'text-slate-400 hover:text-slate-300'
-            }`}
-          >
+                ? 'bg-white text-plum-600 shadow-sm'
+                : 'text-text-muted hover:text-text-primary'
+            }`}>
             Recent Past ({pastSessions.length})
           </button>
         </div>
 
         {/* Loading State */}
         {isLoading && (
-          <div className="text-center py-12 text-slate-400">
+          <div className="text-center py-16 text-text-muted">
+            <div className="w-8 h-8 border-2 border-plum-200 border-t-plum-500 rounded-full animate-spin mx-auto mb-4" />
             Loading sessions...
           </div>
         )}
 
         {/* Empty State */}
         {!isLoading && activeTab === 'active' && activeSessions.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-slate-400 mb-4">No active sessions</p>
+          <div className="text-center py-16 bg-surface-light rounded-2xl border border-border-light">
+            <div className="w-16 h-16 bg-plum-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-plum-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <p className="text-text-muted mb-4">No active sessions</p>
             <Link href="/create">
-              <Button className="bg-blue-600 border-blue-600 text-white hover:bg-blue-700">
+              <Button variant="primary">
                 Create Your First Session
               </Button>
             </Link>
@@ -236,20 +254,30 @@ export default function Dashboard() {
         )}
 
         {!isLoading && activeTab === 'upcoming' && upcomingSessions.length === 0 && (
-          <div className="text-center py-12 text-slate-400">
-            <p>No upcoming scheduled sessions</p>
+          <div className="text-center py-16 bg-surface-light rounded-2xl border border-border-light">
+            <div className="w-16 h-16 bg-plum-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-plum-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <p className="text-text-muted">No upcoming scheduled sessions</p>
           </div>
         )}
 
         {!isLoading && activeTab === 'past' && pastSessions.length === 0 && (
-          <div className="text-center py-12 text-slate-400">
-            <p>No recent past sessions (last 7 days)</p>
+          <div className="text-center py-16 bg-surface-light rounded-2xl border border-border-light">
+            <div className="w-16 h-16 bg-plum-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-plum-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <p className="text-text-muted">No recent past sessions (last 7 days)</p>
           </div>
         )}
 
         {/* Session Grid */}
         {!isLoading && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {activeTab === 'active' &&
               activeSessions.map((session) => (
                 <SessionCard

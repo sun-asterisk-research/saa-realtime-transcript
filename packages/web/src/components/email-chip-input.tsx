@@ -108,21 +108,21 @@ export function EmailChipInput({ value, onChange, placeholder, label, className 
 
   return (
     <div className={cn('relative', className)}>
-      {label && <label className="block text-slate-300 mb-2 text-sm font-medium">{label}</label>}
+      {label && <label className="block text-text-primary mb-2 text-sm font-medium">{label}</label>}
 
-      <div className="min-h-[42px] w-full rounded-md border border-primary bg-transparent px-3 py-2 text-base shadow-sm transition-colors focus-within:ring-2 focus-within:ring-primary/50">
+      <div className="min-h-[42px] w-full rounded-xl border-2 border-plum-200 bg-white px-3 py-2 text-base shadow-sm transition-colors focus-within:border-plum-500 focus-within:ring-2 focus-within:ring-plum-500/20">
         {/* Chips Display */}
         <div className="flex flex-wrap gap-2 mb-1">
           {value.map((email) => (
             <div
               key={email}
-              className="bg-blue-600 text-white px-3 py-1 rounded-full flex items-center gap-2 text-sm"
+              className="bg-plum-100 text-plum-700 border border-plum-200 px-3 py-1 rounded-full flex items-center gap-2 text-sm"
             >
               <span>{email}</span>
               <button
                 type="button"
                 onClick={() => handleRemoveEmail(email)}
-                className="hover:text-red-200 transition-colors font-bold"
+                className="hover:text-red-500 transition-colors font-bold cursor-pointer"
                 aria-label={`Remove ${email}`}
               >
                 ×
@@ -144,7 +144,7 @@ export function EmailChipInput({ value, onChange, placeholder, label, className 
             }
           }}
           placeholder={value.length === 0 ? placeholder || 'Type email or name...' : ''}
-          className="w-full bg-transparent outline-none text-primary placeholder:text-slate-400"
+          className="w-full bg-transparent outline-none text-text-primary placeholder:text-text-muted"
         />
       </div>
 
@@ -152,7 +152,7 @@ export function EmailChipInput({ value, onChange, placeholder, label, className 
       {showSuggestions && suggestions.length > 0 && (
         <div
           ref={dropdownRef}
-          className="absolute z-10 w-full mt-1 bg-slate-700 border border-slate-600 rounded-md shadow-lg max-h-60 overflow-y-auto"
+          className="absolute z-10 w-full mt-1 bg-white border-2 border-plum-200 rounded-xl shadow-lg max-h-60 overflow-y-auto"
         >
           {suggestions.map((user, index) => (
             <button
@@ -160,8 +160,8 @@ export function EmailChipInput({ value, onChange, placeholder, label, className 
               type="button"
               onClick={() => handleAddEmail(user.email)}
               className={cn(
-                'w-full px-4 py-2 text-left hover:bg-slate-600 flex items-center gap-3 transition-colors',
-                index === selectedIndex && 'bg-slate-600',
+                'w-full px-4 py-2 text-left hover:bg-plum-50 flex items-center gap-3 transition-colors cursor-pointer',
+                index === selectedIndex && 'bg-plum-50',
               )}
               onMouseEnter={() => setSelectedIndex(index)}
             >
@@ -176,8 +176,8 @@ export function EmailChipInput({ value, onChange, placeholder, label, className 
                 />
               )}
               <div className="flex-1 min-w-0">
-                <div className="text-white text-sm font-medium truncate">{user.full_name}</div>
-                <div className="text-slate-400 text-xs truncate">{user.email}</div>
+                <div className="text-text-primary text-sm font-medium truncate">{user.full_name}</div>
+                <div className="text-text-muted text-xs truncate">{user.email}</div>
               </div>
             </button>
           ))}

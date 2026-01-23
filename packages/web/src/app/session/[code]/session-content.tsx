@@ -35,14 +35,14 @@ interface ParticipantInfo {
 // Generate consistent color for each participant
 function getParticipantColor(participantName: string): string {
   const colors = [
-    'text-blue-400',
-    'text-green-400',
-    'text-purple-400',
-    'text-pink-400',
-    'text-cyan-400',
-    'text-orange-400',
-    'text-teal-400',
-    'text-indigo-400',
+    'text-plum-500',
+    'text-emerald-500',
+    'text-violet-500',
+    'text-rose-500',
+    'text-cyan-500',
+    'text-amber-500',
+    'text-teal-500',
+    'text-indigo-500',
   ];
 
   // Simple hash function to get consistent color for same name
@@ -56,21 +56,21 @@ function getParticipantColor(participantName: string): string {
 // Generate color for speaker diarization (supports up to 15 speakers)
 function getSpeakerColor(speakerId: string): string {
   const colors = [
-    'text-blue-400',    // Speaker 1
-    'text-green-400',   // Speaker 2
-    'text-purple-400',  // Speaker 3
-    'text-pink-400',    // Speaker 4
-    'text-cyan-400',    // Speaker 5
-    'text-orange-400',  // Speaker 6
-    'text-teal-400',    // Speaker 7
-    'text-indigo-400',  // Speaker 8
-    'text-yellow-400',  // Speaker 9
-    'text-red-400',     // Speaker 10
-    'text-lime-400',    // Speaker 11
-    'text-rose-400',    // Speaker 12
-    'text-amber-400',   // Speaker 13
-    'text-emerald-400', // Speaker 14
-    'text-fuchsia-400', // Speaker 15
+    'text-plum-500',     // Speaker 1
+    'text-emerald-500',  // Speaker 2
+    'text-violet-500',   // Speaker 3
+    'text-rose-500',     // Speaker 4
+    'text-cyan-500',     // Speaker 5
+    'text-amber-500',    // Speaker 6
+    'text-teal-500',     // Speaker 7
+    'text-indigo-500',   // Speaker 8
+    'text-yellow-500',   // Speaker 9
+    'text-red-500',      // Speaker 10
+    'text-lime-500',     // Speaker 11
+    'text-pink-500',     // Speaker 12
+    'text-orange-500',   // Speaker 13
+    'text-green-500',    // Speaker 14
+    'text-fuchsia-500',  // Speaker 15
   ];
   const index = parseInt(speakerId, 10) - 1; // Speaker IDs are 1-based
   return colors[Math.abs(index) % colors.length];
@@ -513,7 +513,7 @@ export default function SessionContent({ code }: SessionContentProps) {
 
       // Show confirmation to restart
       const shouldRestart = window.confirm(
-        '⚠️ Context has been updated. Transcription needs to restart with the new context.\n\nRestart transcription now?',
+        'Context has been updated. Transcription needs to restart with the new context.\n\nRestart transcription now?',
       );
 
       if (shouldRestart) {
@@ -529,47 +529,69 @@ export default function SessionContent({ code }: SessionContentProps) {
 
   if (sessionLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-900">
-        <div className="text-white">Loading session...</div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-plum-800 to-plum-900">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-3 border-white/20 border-t-white rounded-full animate-spin" />
+          <div className="text-white/80">Loading session...</div>
+        </div>
       </div>
     );
   }
 
   if (sessionError || !session) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900 p-4">
-        <div className="text-red-400 mb-4">Session not found</div>
-        <Link href="/">
-          <Button>Back to Home</Button>
-        </Link>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-plum-800 to-plum-900 p-4">
+        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 text-center max-w-md">
+          <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <div className="text-white/80 mb-6">Session not found</div>
+          <Link href="/">
+            <Button variant="primary">Back to Home</Button>
+          </Link>
+        </div>
       </div>
     );
   }
 
   if (session.status === 'ended') {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900 p-4">
-        <div className="text-slate-400 mb-4">This session has ended</div>
-        <Link href={`/history/${code}`}>
-          <Button className="mb-2">View History</Button>
-        </Link>
-        <Link href="/">
-          <Button>Back to Home</Button>
-        </Link>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-plum-800 to-plum-900 p-4">
+        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 text-center max-w-md">
+          <div className="w-16 h-16 bg-plum-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-plum-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <div className="text-white/80 mb-6">This session has ended</div>
+          <div className="space-y-3">
+            <Link href={`/history/${code}`}>
+              <Button variant="primary" className="w-full">View History</Button>
+            </Link>
+            <Link href="/">
+              <Button variant="ghost" className="w-full text-white/70 hover:text-white">Back to Home</Button>
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="h-screen flex flex-col bg-slate-900 overflow-hidden">
+    <div className="h-screen flex flex-col bg-white overflow-hidden">
       {/* Countdown Banner */}
       {isScheduled && (
-        <div className="bg-yellow-600/20 border-b border-yellow-600 p-4 text-center flex-shrink-0">
-          <div className="text-yellow-300 flex items-center justify-center gap-3">
+        <div className="bg-amber-50 border-b border-amber-200 p-4 text-center flex-shrink-0">
+          <div className="text-amber-800 flex items-center justify-center gap-3">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
             <span className="font-medium">Session scheduled to start in</span>
             <CountdownTimer targetTime={session.scheduled_start_time!} onComplete={() => setIsScheduled(false)} />
           </div>
-          <p className="text-yellow-400/80 text-sm mt-1">
+          <p className="text-amber-600 text-sm mt-1">
             Recording will be enabled when the session starts at the scheduled time.
           </p>
         </div>
@@ -578,251 +600,260 @@ export default function SessionContent({ code }: SessionContentProps) {
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left Panel - Controls */}
-        <div className="w-80 bg-slate-800 p-4 flex flex-col border-r border-slate-700 flex-shrink-0">
+        <div className="w-80 bg-surface-light p-5 flex flex-col border-r border-plum-100 flex-shrink-0">
           {/* Session Info */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-2">
-              <h2 className="text-lg font-semibold text-white">
+              <h2 className="text-lg font-semibold text-text-primary truncate flex-1">
                 {session.title || `Session: ${code}`}
               </h2>
-              <Link href={`/session/${code}/display`} target="_blank" className="text-sm text-blue-400 hover:text-blue-300">
+              <Link
+                href={`/session/${code}/display`}
+                target="_blank"
+                className="text-sm text-plum-600 hover:text-plum-700 font-medium flex-shrink-0 ml-2">
                 Display View
               </Link>
             </div>
             {session.description && (
-              <p className="text-sm text-slate-400 mb-2">{session.description}</p>
+              <p className="text-sm text-text-muted mb-2">{session.description}</p>
             )}
-            <div className="text-sm text-slate-400">
+            <div className="text-sm text-text-secondary bg-white rounded-lg px-3 py-2 border border-plum-100">
               Mode: {session.mode === 'one_way' ? 'One-way' : 'Two-way'}
               {session.mode === 'one_way' && ` → ${session.target_language?.toUpperCase()}`}
               {session.mode === 'two_way' && ` (${session.language_a?.toUpperCase()} ↔ ${session.language_b?.toUpperCase()})`}
             </div>
           </div>
 
-        {/* Display Language Selector - only for two-way mode, disabled in bilingual mode */}
-        {session.mode === 'two_way' && session.language_a && session.language_b && !isBilingualMode && (
-          <div className="mb-6">
-            <label className="block text-slate-300 mb-2 text-sm">Display Language</label>
-            <Select
-              value={displayLanguage}
-              onChange={(e) => handleDisplayLanguageChange(e.target.value)}
-              className="text-white text-sm">
-              <option value={session.language_a}>{session.language_a.toUpperCase()}</option>
-              <option value={session.language_b}>{session.language_b.toUpperCase()}</option>
-            </Select>
-            <p className="text-slate-500 text-xs mt-1">All transcripts shown in this language</p>
-          </div>
-        )}
-
-        {/* Bilingual Mode Toggle */}
-        <div className="mb-6">
-          <BilingualToggle />
-          {isBilingualMode && (
-            <p className="text-slate-500 text-xs mt-1">Showing both original and translated text</p>
+          {/* Display Language Selector - only for two-way mode, disabled in bilingual mode */}
+          {session.mode === 'two_way' && session.language_a && session.language_b && !isBilingualMode && (
+            <div className="mb-5">
+              <label className="block text-text-secondary mb-2 text-sm font-medium">Display Language</label>
+              <Select
+                value={displayLanguage}
+                onChange={(e) => handleDisplayLanguageChange(e.target.value)}
+                className="text-sm">
+                <option value={session.language_a}>{session.language_a.toUpperCase()}</option>
+                <option value={session.language_b}>{session.language_b.toUpperCase()}</option>
+              </Select>
+              <p className="text-text-light text-xs mt-1.5">All transcripts shown in this language</p>
+            </div>
           )}
-        </div>
 
-        {/* Microphone Selection */}
-        <div className="mb-6">
-          <label className="block text-slate-300 mb-2 text-sm">Microphone</label>
-          <Select
-            value={selectedMic}
-            onChange={(e) => setSelectedMic(e.target.value)}
-            className="text-white text-sm"
-            disabled={isRecording || isScheduled}>
-            {audioDevices.map((device) => (
-              <option key={device.deviceId} value={device.deviceId}>
-                {device.label || `Microphone ${device.deviceId.slice(0, 8)}`}
-              </option>
-            ))}
-          </Select>
-        </div>
-
-        {/* Context Management */}
-        <ContextManagementPanel
-          sessionCode={code}
-          sessionId={session.id}
-          contextSets={contextSets}
-          mergedContext={mergedContext}
-          isLoading={contextsLoading}
-          disabled={isRecording || isScheduled}
-          isHost={participantInfo?.isHost || false}
-          onContextChange={handleContextChange}
-          onAddContextSets={addContextSets}
-          onRemoveContextSet={removeContextSet}
-        />
-
-        {/* Recording Status */}
-        <div className="mb-6">
-          <div className="flex items-center gap-2 mb-2">
-            <div className={`w-3 h-3 rounded-full ${isRecording ? 'bg-red-500 animate-pulse' : 'bg-slate-500'}`} />
-            <span className="text-sm text-slate-300">{isRecording ? 'Recording...' : 'Ready'}</span>
-          </div>
-          <div className="text-xs text-slate-500">State: {state}</div>
-        </div>
-
-        {/* Start/Stop Button */}
-        <Button
-          onClick={handleStartStop}
-          disabled={isScheduled}
-          className={`w-full h-12 mb-4 ${
-            isRecording ? 'bg-red-600 border-red-600 hover:bg-red-700' : 'bg-green-600 border-green-600 hover:bg-green-700'
-          } text-white disabled:opacity-50 disabled:cursor-not-allowed`}>
-          {isRecording ? 'Stop Recording' : isScheduled ? 'Waiting for scheduled time...' : 'Start Recording'}
-        </Button>
-
-        {/* Join Request Notifications - only for host */}
-        {participantInfo?.isHost && (
-          <JoinRequestNotifications sessionId={session.id} sessionCode={code} />
-        )}
-
-        {/* Participants */}
-        <div className="flex-1 overflow-auto mb-4">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-slate-300">
-              Participants ({participants.filter((p) => !p.left_at).length})
-            </h3>
-            {participantInfo?.isHost && (
-              <button
-                onClick={() => setIsInviteModalOpen(true)}
-                className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
-              >
-                + Invite
-              </button>
+          {/* Bilingual Mode Toggle */}
+          <div className="mb-5">
+            <BilingualToggle />
+            {isBilingualMode && (
+              <p className="text-text-light text-xs mt-1.5">Showing both original and translated text</p>
             )}
           </div>
-          <div className="space-y-1">
-            {participants.map((p) => {
-              const isOnline = !p.left_at;
-              return (
-                <div key={p.id} className={`text-sm flex items-center gap-2 ${isOnline ? 'text-slate-400' : 'text-slate-600'}`}>
-                  <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-500' : 'bg-slate-600'}`} />
-                  {p.name}
-                  {p.is_host && <span className="text-xs text-blue-400">(Host)</span>}
-                  {p.id === participantInfo?.participantId && <span className="text-xs text-slate-500">(You)</span>}
-                  {!isOnline && <span className="text-xs text-slate-600">(Left)</span>}
-                </div>
-              );
-            })}
-          </div>
-        </div>
 
-        {/* Actions */}
-        <div className="space-y-2">
-          {participantInfo?.isHost && (
-            <Button onClick={handleEndSession} className="w-full text-red-400 border-red-400 hover:bg-red-900/20">
-              End Session
-            </Button>
-          )}
-          <Button onClick={handleLeave} className="w-full">
-            Leave Session
+          {/* Microphone Selection */}
+          <div className="mb-5">
+            <label className="block text-text-secondary mb-2 text-sm font-medium">Microphone</label>
+            <Select
+              value={selectedMic}
+              onChange={(e) => setSelectedMic(e.target.value)}
+              className="text-sm"
+              disabled={isRecording || isScheduled}>
+              {audioDevices.map((device) => (
+                <option key={device.deviceId} value={device.deviceId}>
+                  {device.label || `Microphone ${device.deviceId.slice(0, 8)}`}
+                </option>
+              ))}
+            </Select>
+          </div>
+
+          {/* Context Management */}
+          <ContextManagementPanel
+            sessionCode={code}
+            sessionId={session.id}
+            contextSets={contextSets}
+            mergedContext={mergedContext}
+            isLoading={contextsLoading}
+            disabled={isRecording || isScheduled}
+            isHost={participantInfo?.isHost || false}
+            onContextChange={handleContextChange}
+            onAddContextSets={addContextSets}
+            onRemoveContextSet={removeContextSet}
+          />
+
+          {/* Recording Status */}
+          <div className="mb-5 bg-white rounded-lg p-3 border border-plum-100">
+            <div className="flex items-center gap-3">
+              <div className={`w-3 h-3 rounded-full ${isRecording ? 'bg-plum-500 animate-pulse-glow' : 'bg-gray-300'}`} />
+              <span className="text-sm text-text-primary font-medium">{isRecording ? 'Recording...' : 'Ready'}</span>
+            </div>
+            <div className="text-xs text-text-light mt-1">State: {state}</div>
+          </div>
+
+          {/* Start/Stop Button */}
+          <Button
+            onClick={handleStartStop}
+            disabled={isScheduled}
+            variant={isRecording ? 'danger' : 'success'}
+            size="lg"
+            className="w-full mb-5 h-14">
+            {isRecording ? 'Stop Recording' : isScheduled ? 'Waiting for scheduled time...' : 'Start Recording'}
           </Button>
-        </div>
-      </div>
 
-      {/* Right Panel - Transcripts */}
-      <div className="flex-1 flex flex-col bg-[#092432] min-h-0">
-        {/* Show empty state OR scroll container, not both */}
-        {transcripts.length === 0 && streamingTranscripts.size === 0 && !currentStreamingText ? (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-slate-500 text-xl">Start recording to see transcripts...</div>
-          </div>
-        ) : isBilingualMode ? (
-          <div
-            ref={scrollContainerRef}
-            className="flex-1 overflow-y-auto p-6 scroll-smooth"
-          >
-            <BilingualTwoColumnLayout
-              items={bilingualItems}
-              mode={session?.mode || 'one_way'}
-              targetLanguage={session?.target_language || undefined}
-              languageA={session?.language_a || undefined}
-              languageB={session?.language_b || undefined}
-            />
-            <div ref={transcriptEndRef} />
-          </div>
-        ) : (
-          <div
-            ref={scrollContainerRef}
-            className="flex-1 overflow-y-auto p-6 scroll-smooth"
-          >
-            <div className="space-y-4">
-              {/* Final transcripts from database */}
-              {transcripts.map((t) => {
-                const enableDiarization = session?.enable_speaker_diarization && t.speaker_id;
-                const textColor = enableDiarization
-                  ? getSpeakerColor(t.speaker_id!)
-                  : getParticipantColor(t.participant_name);
-                const displayData = getDisplayText(t, displayLanguage, session?.mode || 'one_way');
+          {/* Join Request Notifications - only for host */}
+          {participantInfo?.isHost && (
+            <JoinRequestNotifications sessionId={session.id} sessionCode={code} />
+          )}
+
+          {/* Participants */}
+          <div className="flex-1 overflow-auto mb-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-medium text-text-secondary">
+                Participants ({participants.filter((p) => !p.left_at).length})
+              </h3>
+              {participantInfo?.isHost && (
+                <button
+                  onClick={() => setIsInviteModalOpen(true)}
+                  className="text-xs text-plum-600 hover:text-plum-700 font-medium transition-colors">
+                  + Invite
+                </button>
+              )}
+            </div>
+            <div className="space-y-2">
+              {participants.map((p) => {
+                const isOnline = !p.left_at;
                 return (
-                  <div key={t.id} className="text-white animate-fadeIn">
-                    <span className={`${textColor} font-medium`}>
-                      {t.participant_name}
-                      {enableDiarization && ` (Speaker ${t.speaker_id})`}
-                      {displayData.isTranslated && ' (translated)'}:{' '}
-                    </span>
-                    <span className="text-2xl">{displayData.text}</span>
+                  <div
+                    key={p.id}
+                    className={`text-sm flex items-center gap-2 px-3 py-2 rounded-lg ${isOnline ? 'bg-white' : 'bg-surface-muted'}`}>
+                    <div className={`w-2 h-2 rounded-full flex-shrink-0 ${isOnline ? 'bg-green-500' : 'bg-gray-300'}`} />
+                    <span className={isOnline ? 'text-text-primary' : 'text-text-light'}>{p.name}</span>
+                    {p.is_host && <span className="text-xs text-plum-600 font-medium">(Host)</span>}
+                    {p.id === participantInfo?.participantId && <span className="text-xs text-text-light">(You)</span>}
+                    {!isOnline && <span className="text-xs text-text-light">(Left)</span>}
                   </div>
                 );
               })}
+            </div>
+          </div>
 
-              {/* Streaming transcripts from other participants (via Supabase) */}
-              {Array.from(streamingTranscripts.entries())
-                .filter(([id]) => id !== participantInfo?.participantId) // Don't show own streaming twice
-                .map(([id, data]) => {
-                  const enableDiarization = session?.enable_speaker_diarization && data.speakerId;
+          {/* Actions */}
+          <div className="space-y-2">
+            {participantInfo?.isHost && (
+              <Button onClick={handleEndSession} variant="danger" className="w-full">
+                End Session
+              </Button>
+            )}
+            <Button onClick={handleLeave} variant="outline" className="w-full">
+              Leave Session
+            </Button>
+          </div>
+        </div>
+
+        {/* Right Panel - Transcripts */}
+        <div className="flex-1 flex flex-col bg-gradient-to-br from-plum-800 to-plum-900 min-h-0">
+          {/* Show empty state OR scroll container, not both */}
+          {transcripts.length === 0 && streamingTranscripts.size === 0 && !currentStreamingText ? (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center">
+                <div className="w-20 h-20 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-10 h-10 text-white/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                  </svg>
+                </div>
+                <div className="text-white/60 text-lg">Start recording to see transcripts...</div>
+              </div>
+            </div>
+          ) : isBilingualMode ? (
+            <div
+              ref={scrollContainerRef}
+              className="flex-1 overflow-y-auto p-6 scroll-smooth custom-scrollbar-dark">
+              <BilingualTwoColumnLayout
+                items={bilingualItems}
+                mode={session?.mode || 'one_way'}
+                targetLanguage={session?.target_language || undefined}
+                languageA={session?.language_a || undefined}
+                languageB={session?.language_b || undefined}
+              />
+              <div ref={transcriptEndRef} />
+            </div>
+          ) : (
+            <div
+              ref={scrollContainerRef}
+              className="flex-1 overflow-y-auto p-6 scroll-smooth custom-scrollbar-dark">
+              <div className="space-y-4">
+                {/* Final transcripts from database */}
+                {transcripts.map((t) => {
+                  const enableDiarization = session?.enable_speaker_diarization && t.speaker_id;
                   const textColor = enableDiarization
-                    ? getSpeakerColor(data.speakerId!)
-                    : getParticipantColor(data.participantName);
-                  const displayData = getDisplayText(
-                    {
-                      original_text: data.text,
-                      translated_text: data.translatedText,
-                      source_language: data.sourceLanguage,
-                      target_language: data.targetLanguage,
-                    },
-                    displayLanguage,
-                    session?.mode || 'one_way'
-                  );
+                    ? getSpeakerColor(t.speaker_id!)
+                    : getParticipantColor(t.participant_name);
+                  const displayData = getDisplayText(t, displayLanguage, session?.mode || 'one_way');
                   return (
-                    <div key={id} className="text-yellow-300 transition-opacity duration-150">
-                      <span className={`${textColor} font-medium`}>
-                        {data.participantName}
-                        {enableDiarization && ` (Speaker ${data.speakerId})`}
+                    <div key={t.id} className="text-white animate-fadeIn">
+                      <span className={`${textColor} font-semibold`}>
+                        {t.participant_name}
+                        {enableDiarization && ` (Speaker ${t.speaker_id})`}
                         {displayData.isTranslated && ' (translated)'}:{' '}
                       </span>
-                      <span className="text-2xl">{displayData.text}</span>
-                      <span className="inline-block w-2 h-6 bg-yellow-400 ml-1 animate-blink" />
+                      <span className="text-xl leading-relaxed">{displayData.text}</span>
                     </div>
                   );
                 })}
 
-              {/* LOCAL streaming text - shows immediately while speaking */}
-              {currentStreamingText && isRecording && (
-                <div className="text-yellow-300">
-                  {(() => {
-                    const enableDiarization = session?.enable_speaker_diarization && currentSpeakerId;
+                {/* Streaming transcripts from other participants (via Supabase) */}
+                {Array.from(streamingTranscripts.entries())
+                  .filter(([id]) => id !== participantInfo?.participantId) // Don't show own streaming twice
+                  .map(([id, data]) => {
+                    const enableDiarization = session?.enable_speaker_diarization && data.speakerId;
                     const textColor = enableDiarization
-                      ? getSpeakerColor(currentSpeakerId!)
-                      : getParticipantColor(participantInfo?.participantName || '');
-                    return (
-                      <span className={`${textColor} font-medium`}>
-                        {participantInfo?.participantName}
-                        {enableDiarization && ` (Speaker ${currentSpeakerId})`}
-                        {isCurrentStreamingTranslated && ' (translated)'}:{' '}
-                      </span>
+                      ? getSpeakerColor(data.speakerId!)
+                      : getParticipantColor(data.participantName);
+                    const displayData = getDisplayText(
+                      {
+                        original_text: data.text,
+                        translated_text: data.translatedText,
+                        source_language: data.sourceLanguage,
+                        target_language: data.targetLanguage,
+                      },
+                      displayLanguage,
+                      session?.mode || 'one_way'
                     );
-                  })()}
-                  <span className="text-2xl">{currentStreamingText}</span>
-                  <span className="inline-block w-2 h-6 bg-yellow-400 ml-1 animate-blink" />
-                </div>
-              )}
+                    return (
+                      <div key={id} className="text-plum-200 transition-opacity duration-150">
+                        <span className={`${textColor} font-semibold`}>
+                          {data.participantName}
+                          {enableDiarization && ` (Speaker ${data.speakerId})`}
+                          {displayData.isTranslated && ' (translated)'}:{' '}
+                        </span>
+                        <span className="text-xl leading-relaxed">{displayData.text}</span>
+                        <span className="inline-block w-2 h-5 bg-plum-400 ml-1.5 animate-blink rounded-sm" />
+                      </div>
+                    );
+                  })}
 
-              <div ref={transcriptEndRef} />
+                {/* LOCAL streaming text - shows immediately while speaking */}
+                {currentStreamingText && isRecording && (
+                  <div className="text-plum-200">
+                    {(() => {
+                      const enableDiarization = session?.enable_speaker_diarization && currentSpeakerId;
+                      const textColor = enableDiarization
+                        ? getSpeakerColor(currentSpeakerId!)
+                        : getParticipantColor(participantInfo?.participantName || '');
+                      return (
+                        <span className={`${textColor} font-semibold`}>
+                          {participantInfo?.participantName}
+                          {enableDiarization && ` (Speaker ${currentSpeakerId})`}
+                          {isCurrentStreamingTranslated && ' (translated)'}:{' '}
+                        </span>
+                      );
+                    })()}
+                    <span className="text-xl leading-relaxed">{currentStreamingText}</span>
+                    <span className="inline-block w-2 h-5 bg-plum-400 ml-1.5 animate-blink rounded-sm" />
+                  </div>
+                )}
+
+                <div ref={transcriptEndRef} />
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
       </div>
 
       {/* Invite Modal */}

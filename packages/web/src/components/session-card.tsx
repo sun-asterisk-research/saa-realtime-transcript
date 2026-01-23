@@ -21,23 +21,29 @@ export function SessionCard({ session, role, onJoin, className }: SessionCardPro
   // Determine translation mode display
   const getModeDisplay = () => {
     if (session.mode === 'one_way') {
-      return `One-way → ${session.target_language}`;
+      return `One-way → ${session.target_language?.toUpperCase()}`;
     } else {
-      return `Two-way (${session.language_a} ⟷ ${session.language_b})`;
+      return `Two-way (${session.language_a?.toUpperCase()} ⟷ ${session.language_b?.toUpperCase()})`;
     }
   };
 
   // Status badge styling
   const getStatusBadge = () => {
     const statusConfig = {
-      active: { label: 'Active', className: 'bg-green-600/20 text-green-400 border-green-600' },
-      ended: { label: 'Ended', className: 'bg-slate-600/20 text-slate-400 border-slate-600' },
+      active: {
+        label: 'Active',
+        className: 'bg-green-50 text-green-600 border-green-200',
+      },
+      ended: {
+        label: 'Ended',
+        className: 'bg-gray-100 text-gray-500 border-gray-200',
+      },
     };
 
     const config = statusConfig[session.status] || statusConfig.active;
 
     return (
-      <span className={cn('text-xs px-2 py-1 rounded border', config.className)}>
+      <span className={cn('text-xs px-2.5 py-1 rounded-full border font-medium', config.className)}>
         {config.label}
       </span>
     );
@@ -47,13 +53,13 @@ export function SessionCard({ session, role, onJoin, className }: SessionCardPro
   const getRoleBadge = () => {
     if (role === 'creator') {
       return (
-        <span className="text-xs px-2 py-1 rounded bg-blue-600/20 text-blue-400 border border-blue-600">
+        <span className="text-xs px-2.5 py-1 rounded-full bg-plum-50 text-plum-600 border border-plum-200 font-medium">
           Creator
         </span>
       );
     } else if (role === 'invited') {
       return (
-        <span className="text-xs px-2 py-1 rounded bg-purple-600/20 text-purple-400 border border-purple-600">
+        <span className="text-xs px-2.5 py-1 rounded-full bg-purple-50 text-purple-600 border border-purple-200 font-medium">
           Invited
         </span>
       );
@@ -64,13 +70,12 @@ export function SessionCard({ session, role, onJoin, className }: SessionCardPro
   return (
     <div
       className={cn(
-        'bg-slate-700/30 border border-slate-600 rounded-lg p-4 hover:border-slate-500 transition-all hover:shadow-lg',
+        'bg-white border border-plum-100 rounded-xl p-5 hover:border-plum-300 hover:shadow-lg transition-all duration-200',
         className,
-      )}
-    >
+      )}>
       {/* Header with Title and Badges */}
       <div className="flex justify-between items-start mb-3">
-        <h3 className="text-white font-semibold text-lg flex-1 mr-2 truncate">
+        <h3 className="text-text-primary font-semibold text-lg flex-1 mr-2 truncate">
           {session.title || `Session ${session.code}`}
         </h3>
         <div className="flex gap-2 flex-shrink-0">
@@ -81,29 +86,29 @@ export function SessionCard({ session, role, onJoin, className }: SessionCardPro
 
       {/* Description */}
       {session.description && (
-        <p className="text-slate-400 text-sm mb-3 line-clamp-2">{session.description}</p>
+        <p className="text-text-muted text-sm mb-4 line-clamp-2">{session.description}</p>
       )}
 
       {/* Session Details */}
-      <div className="space-y-1 text-sm text-slate-400 mb-3">
+      <div className="space-y-2 text-sm mb-4">
         <div className="flex items-center gap-2">
-          <span className="text-slate-500">Host:</span>
-          <span className="text-slate-300">{session.host_name}</span>
+          <span className="text-text-light w-14">Host:</span>
+          <span className="text-text-secondary">{session.host_name}</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-slate-500">Mode:</span>
-          <span className="text-slate-300">{getModeDisplay()}</span>
+          <span className="text-text-light w-14">Mode:</span>
+          <span className="text-text-secondary">{getModeDisplay()}</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-slate-500">Code:</span>
-          <span className="text-slate-300 font-mono">{session.code}</span>
+          <span className="text-text-light w-14">Code:</span>
+          <span className="text-plum-600 font-mono font-medium bg-plum-50 px-2 py-0.5 rounded">{session.code}</span>
         </div>
         {scheduledDate && (
           <div className="flex items-center gap-2">
-            <span className="text-slate-500">
-              {isPast ? 'Ended:' : isScheduled ? 'Scheduled:' : 'Started:'}
+            <span className="text-text-light w-14">
+              {isPast ? 'Ended:' : isScheduled ? 'Start:' : 'Started:'}
             </span>
-            <span className="text-slate-300">
+            <span className="text-text-secondary">
               {scheduledDate.toLocaleString('en-US', {
                 month: 'short',
                 day: 'numeric',
@@ -118,9 +123,9 @@ export function SessionCard({ session, role, onJoin, className }: SessionCardPro
 
       {/* Countdown Timer */}
       {isScheduled && !isPast && (
-        <div className="bg-yellow-600/10 border border-yellow-600/30 rounded-md p-3 mb-3">
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
           <div className="flex items-center justify-between">
-            <span className="text-yellow-400 text-sm font-medium">Starts in:</span>
+            <span className="text-amber-700 text-sm font-medium">Starts in:</span>
             <CountdownTimer targetTime={session.scheduled_start_time!} />
           </div>
         </div>
@@ -128,16 +133,17 @@ export function SessionCard({ session, role, onJoin, className }: SessionCardPro
 
       {/* Join Button */}
       {onJoin && isActive && (
-        <Button onClick={onJoin} className="w-full mt-2">
+        <Button onClick={onJoin} variant="primary" className="w-full">
           Join Session
         </Button>
       )}
 
       {/* View History Button for Past Sessions */}
       {isPast && session.ended_at && (
-        <div className="mt-3 space-y-2">
-          <div className="text-slate-500 text-xs">
-            Ended {new Date(session.ended_at).toLocaleString('en-US', {
+        <div className="space-y-2">
+          <div className="text-text-light text-xs">
+            Ended{' '}
+            {new Date(session.ended_at).toLocaleString('en-US', {
               month: 'short',
               day: 'numeric',
               hour: '2-digit',
@@ -146,8 +152,9 @@ export function SessionCard({ session, role, onJoin, className }: SessionCardPro
             })}
           </div>
           <Button
-            onClick={() => window.location.href = `/history/${session.code}`}
-            className="w-full bg-slate-600 border-slate-600 text-white hover:bg-slate-700">
+            onClick={() => (window.location.href = `/history/${session.code}`)}
+            variant="secondary"
+            className="w-full">
             View History
           </Button>
         </div>

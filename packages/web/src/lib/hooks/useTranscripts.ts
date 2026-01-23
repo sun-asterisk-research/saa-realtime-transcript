@@ -116,6 +116,21 @@ export function useTranscripts(sessionId: string | undefined, code: string): Use
           }
         },
       )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'transcripts',
+          filter: `session_id=eq.${sessionId}`,
+        },
+        (payload) => {
+          const updatedTranscript = payload.new as Transcript;
+          setTranscripts((prev) =>
+            prev.map((t) => (t.id === updatedTranscript.id ? updatedTranscript : t))
+          );
+        }
+      )
       .on('broadcast', { event: 'streaming' }, ({ payload }) => {
         const data = payload as StreamingTranscript;
         setStreamingTranscripts((prev) => {
