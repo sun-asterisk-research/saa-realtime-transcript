@@ -101,8 +101,18 @@ export default function Home() {
           <p className="text-text-muted text-sm mb-4">
             Create a session as host or join an existing one with a code
           </p>
+          {!isAuthenticated && (
+            <Link
+              href="/manual"
+              className="inline-flex items-center gap-2 text-plum-600 hover:text-plum-700 font-medium transition-colors mb-4">
+              <span>User Guide</span>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
+          )}
           {isAuthenticated && (
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center flex-wrap">
               <Link
                 href="/dashboard"
                 className="inline-flex items-center gap-2 text-plum-600 hover:text-plum-700 font-medium transition-colors">
@@ -115,6 +125,14 @@ export default function Home() {
                 href="/contexts"
                 className="inline-flex items-center gap-2 text-plum-600 hover:text-plum-700 font-medium transition-colors">
                 <span>Manage Context Sets</span>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
+              <Link
+                href="/manual"
+                className="inline-flex items-center gap-2 text-plum-600 hover:text-plum-700 font-medium transition-colors">
+                <span>User Guide</span>
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>

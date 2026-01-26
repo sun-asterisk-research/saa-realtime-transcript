@@ -97,6 +97,8 @@ export function generateChatGPTPrompt(sourceLanguage?: string, targetLanguage?: 
   const sourceLang = LANGUAGE_OPTIONS.find(l => l.code === sourceLanguage);
   const targetLang = LANGUAGE_OPTIONS.find(l => l.code === targetLanguage);
 
+  const hasJapanese = sourceLanguage === 'ja' || targetLanguage === 'ja';
+
   const languageContext = sourceLanguage && targetLanguage
     ? `\n\nLANGUAGE PAIR FOR THIS CONTEXT SET:
 - Source Language: ${sourceLang?.name || sourceLanguage.toUpperCase()} (${sourceLanguage})
@@ -109,7 +111,15 @@ IMPORTANT: Generate the context set specifically for this language pair:
 - Include proper nouns, technical terms, and specialized vocabulary with their accurate translations`
     : '';
 
-  const translationExample = sourceLanguage && targetLanguage
+  const translationExample = hasJapanese
+    ? `
+  "translation_terms": [
+    { "source": "デジタルトランスフォーメーション", "target": "Digital Transformation" },
+    { "source": "クラウド", "target": "Cloud" },
+    { "source": "サーバー", "target": "Server" },
+    { "source": "インフラストラクチャー", "target": "Infrastructure" }
+  ],`
+    : sourceLanguage && targetLanguage
     ? `
   "translation_terms": [
     { "source": "example term in ${sourceLanguage}", "target": "translation in ${targetLanguage}" },
@@ -117,9 +127,22 @@ IMPORTANT: Generate the context set specifically for this language pair:
   ],`
     : `
   "translation_terms": [
-    { "source": "cloud", "target": "クラウド" },
-    { "source": "server", "target": "サーバー" }
+    { "source": "digital transformation", "target": "chuyển đổi số" },
+    { "source": "infrastructure", "target": "cơ sở hạ tầng" }
   ],`;
+
+  const katakanaExamples = hasJapanese
+    ? `
+  - Japanese Katakana loanwords → map to original English in translation_terms
+    Examples: "デジタルトランスフォーメーション" → "Digital Transformation", "クラウド" → "Cloud"`
+    : '';
+
+  const katakanaTranslationRule = hasJapanese
+    ? `
+- Focus primarily on Katakana loanwords → original English form
+  Examples: "デジタルトランスフォーメーション" → "Digital Transformation", "クラウド" → "Cloud", "サーバー" → "Server"
+- For specialized Japanese IT terminology, prefer English technical terms over direct Vietnamese translations`
+    : '';
 
   return `I need you to analyze a document/content and create a JSON configuration for a speech-to-text context set.${languageContext}
 
@@ -129,6 +152,42 @@ YOUR TASK:
 3. Identify key metadata about the domain/topic
 4. ${sourceLanguage && targetLanguage ? `Create translation mappings from ${sourceLang?.name || sourceLanguage.toUpperCase()} to ${targetLang?.name || targetLanguage.toUpperCase()}` : 'If the content contains multiple languages, create translation mappings'}
 5. Generate a JSON that will help improve speech recognition accuracy for this domain
+
+ADDITIONAL REQUIREMENTS (IMPORTANT – FOLLOW STRICTLY)
+
+Goal: Build a speech-to-text context set. The priority is to include terms that are frequently misrecognized without domain context.
+
+1) What to extract (HIGH PRIORITY):
+- Proper nouns: people names, company names, subsidiary names, product/platform/service names
+- Organization terms: department/team/unit/line/center names (use the shortest meaningful form; see formatting rules below)
+- Acronyms and abbreviations (e.g., R&D, HRBP, CI/CD, DX, KPI)
+- Loanwords and technical vocabulary that tend to be misrecognized:
+  - English terms used in non-English meetings${katakanaExamples}
+
+2) What to exclude (FILTER OUT):
+- Generic/common words that are easy for Speech-To-Text engines (e.g., company, overview, meeting)
+- Common words unless they are part of a proper noun
+
+3) Term formatting rules (STRICT):
+- Terms must be single words or short phrases (1-2 words preferred)
+- Avoid long sentences, slogans, or phrases longer than 2 words whenever possible
+- Prefer the most "recognition-critical" form:
+  - If the term already implies the category, remove redundant suffixes like "Line / Unit / Center"
+    Example: "AI Research Line" → "AI Research"; "Design Vietnam Unit" → "Design Vietnam"
+  - If a department appears in multiple numbered variants, keep the base name only
+    Example: "Creative & Engineering Vietnam Center 1/2/3/4" → "Creative & Engineering Vietnam Center"
+- For Vietnamese personal names: include only the accented Vietnamese form (no duplicate non-accent versions)
+
+4) translation_terms rules:${katakanaTranslationRule}
+- Focus on domain-specific terms that need accurate translation
+- Include technical terms, proper nouns, and specialized vocabulary with their accurate translations
+
+5) Completeness expectations:
+- Be exhaustive within the document scope: do not miss important names/acronyms/department labels/loanwords
+
+6) text field:
+- Provide a long, coherent background text usable as STT context
+- Include relevant examples, definitions, and context about the domain
 
 JSON STRUCTURE REQUIREMENTS:
 
@@ -152,16 +211,27 @@ OPTIONAL FIELDS (Extract from provided content):
 
 EXAMPLE OUTPUT FORMAT:
 {
-  "name": "My Context Set",
-  "description": "Brief description of what this context set contains",
+  "name": "Company Annual Meeting 2025",
+  "description": "Context set for annual corporate meeting with department introductions and business updates",
   "is_public": false,
-  "terms": ["term1", "term2", "term3"],
+  "terms": [
+    "Sun Asterisk",
+    "Nguyễn Văn A",
+    "Tanaka Taro",
+    "AI Research",
+    "Creative Engineering",
+    "R&D",
+    "DX",
+    "HRBP",
+    "CI/CD"
+  ],
   "general": [
-    { "key": "domain", "value": "Technology" },
-    { "key": "source_language", "value": "${sourceLanguage || 'en'}" },
-    { "key": "target_language", "value": "${targetLanguage || 'ja'}" }
+    { "key": "domain", "value": "Corporate" },
+    { "key": "event_type", "value": "Annual Meeting" },
+    { "key": "source_language", "value": "${sourceLanguage || 'ja'}" },
+    { "key": "target_language", "value": "${targetLanguage || 'vi'}" }
   ],${translationExample}
-  "text": "Additional context text, examples, or relevant information goes here."
+  "text": "This is the annual meeting of Sun Asterisk Inc., featuring presentations from various departments including AI Research, Creative Engineering Vietnam, and the R&D division. Key topics include digital transformation (DX) initiatives, CI/CD pipeline improvements, and HRBP updates."
 }
 
 INSTRUCTIONS:
