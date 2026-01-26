@@ -1,0 +1,300 @@
+import type { ManualContent } from './types';
+
+export const viContent: ManualContent = {
+  locale: 'vi',
+  title: 'Hướng dẫn sử dụng',
+  subtitle: 'Hướng dẫn đầy đủ về cách sử dụng ứng dụng Dịch thuật Phiên họp',
+  lastUpdated: '2025-01',
+  tableOfContentsTitle: 'Mục lục',
+  sections: [
+    {
+      id: 'login',
+      title: '1. Đăng nhập',
+      description: 'Bắt đầu bằng cách đăng nhập với tài khoản Google của bạn',
+      content: [
+        'Trước khi sử dụng ứng dụng, bạn cần đăng nhập bằng tài khoản Google. Điều này cho phép bạn tạo phiên họp, quản lý bộ ngữ cảnh và truy cập lịch sử phiên họp.',
+        'Nhấp vào nút "Sign In" ở góc trên bên phải của trang chủ. Bạn sẽ được chuyển hướng đến trang xác thực của Google, nơi bạn có thể chọn tài khoản.',
+        'Sau khi xác thực thành công, bạn sẽ được chuyển hướng trở lại ứng dụng và có thể bắt đầu sử dụng tất cả các tính năng.',
+      ],
+      image: {
+        src: '/manual/01-login.png',
+        alt: 'Màn hình đăng nhập với nút Sign In',
+      },
+      tips: [
+        'Sử dụng tài khoản Google công việc nếu bạn muốn chia sẻ phiên họp với đồng nghiệp',
+        'Lịch sử phiên họp và bộ ngữ cảnh được liên kết với tài khoản của bạn',
+      ],
+    },
+    {
+      id: 'main-screen',
+      title: '2. Tổng quan màn hình chính',
+      description: 'Tìm hiểu về trang chủ và các tính năng chính',
+      content: [
+        'Sau khi đăng nhập, bạn sẽ thấy màn hình chính với các hành động chính sau:',
+      ],
+      image: {
+        src: '/manual/02-main-screen.png',
+        alt: 'Màn hình chính với các nút hành động',
+      },
+      subsections: [
+        {
+          id: 'main-actions',
+          title: 'Các hành động chính',
+          content: [
+            '**Create Session (Tạo phiên họp)**: Bắt đầu một phiên dịch thuật mới với tư cách chủ phòng. Bạn có thể cấu hình cặp ngôn ngữ, chế độ dịch và mời người tham gia.',
+            '**Join Session (Tham gia phiên họp)**: Nhập mã phiên họp để tham gia cuộc họp hiện có với tư cách người tham gia.',
+            '**View My Sessions (Xem phiên họp của tôi)**: Truy cập bảng điều khiển để xem tất cả các phiên họp bạn đã tạo hoặc tham gia.',
+            '**Manage Context Sets (Quản lý bộ ngữ cảnh)**: Tạo và quản lý từ điển thuật ngữ để cải thiện độ chính xác của bản dịch.',
+          ],
+        },
+      ],
+    },
+    {
+      id: 'context-management',
+      title: '3. Quản lý ngữ cảnh',
+      description: 'Tạo và quản lý bộ ngữ cảnh để có bản dịch chính xác',
+      content: [
+        'Bộ ngữ cảnh (Context Set) là tập hợp các thuật ngữ chuyên ngành, tên riêng và ánh xạ dịch thuật giúp AI nhận dạng và dịch từ vựng chuyên biệt một cách chính xác.',
+      ],
+      subsections: [
+        {
+          id: 'what-is-context',
+          title: '3.1 Bộ ngữ cảnh là gì?',
+          content: [
+            'Bộ ngữ cảnh chứa thuật ngữ và thông tin nền tảng đặc thù cho cuộc họp của bạn. Khi họp với khách hàng mới hoặc thảo luận về dự án mới, AI có thể không nhận dạng chính xác tên công ty, tên sản phẩm hoặc thuật ngữ kỹ thuật.',
+            'Bằng cách tạo bộ ngữ cảnh, bạn cung cấp cho AI kiến thức chuyên biệt này, giúp nhận dạng giọng nói và dịch thuật chính xác hơn.',
+          ],
+          tips: [
+            'Tạo bộ ngữ cảnh riêng cho từng khách hàng hoặc dự án',
+            'Bao gồm tên công ty, tên sản phẩm và thuật ngữ kỹ thuật',
+            'Thêm ánh xạ dịch thuật cho các thuật ngữ cần bản dịch cụ thể',
+          ],
+        },
+        {
+          id: 'access-context',
+          title: '3.2 Truy cập Quản lý ngữ cảnh',
+          content: [
+            'Nhấp vào "Manage Context Sets" trên trang chủ hoặc điều hướng trực tiếp đến trang Contexts.',
+            'Bạn sẽ thấy hai phần: bộ ngữ cảnh cá nhân của bạn và bộ ngữ cảnh công khai mà người dùng khác đã chia sẻ.',
+          ],
+          image: {
+            src: '/manual/03-context-list.png',
+            alt: 'Trang quản lý ngữ cảnh hiển thị danh sách các bộ ngữ cảnh',
+          },
+        },
+        {
+          id: 'create-context',
+          title: '3.3 Tạo bộ ngữ cảnh mới',
+          content: [
+            'Nhấp vào nút "Create New" để mở biểu mẫu tạo bộ ngữ cảnh.',
+            'Điền vào các trường sau:',
+            '**Name (Tên)**: Tên mô tả cho bộ ngữ cảnh (ví dụ: "Dự án ClientX - JA-VI")',
+            '**Description (Mô tả)**: Giải thích ngắn gọn về nội dung bộ ngữ cảnh',
+            '**Terms (Thuật ngữ)**: Từ khóa chuyên ngành, tên riêng và thuật ngữ kỹ thuật',
+            '**Translation Terms (Thuật ngữ dịch)**: Ánh xạ giữa các thuật ngữ ngôn ngữ nguồn và đích',
+            '**Text (Văn bản)**: Thông tin nền tảng và ngữ cảnh bổ sung',
+          ],
+          image: {
+            src: '/manual/04-context-create.png',
+            alt: 'Biểu mẫu tạo bộ ngữ cảnh',
+          },
+        },
+        {
+          id: 'chatgpt-prompt',
+          title: '3.4 Sử dụng ChatGPT để tạo ngữ cảnh (Khuyến nghị)',
+          content: [
+            'Cách dễ nhất để tạo bộ ngữ cảnh toàn diện là sử dụng tính năng ChatGPT Prompt có sẵn:',
+            '1. Nhấp vào nút "ChatGPT Prompt" trong biểu mẫu tạo ngữ cảnh',
+            '2. Chọn ngôn ngữ nguồn và ngôn ngữ đích cho cuộc họp của bạn',
+            '3. Sao chép prompt đã tạo vào clipboard',
+            '4. Mở ChatGPT và dán prompt',
+            '5. Dán tài liệu dự án, tài liệu cuộc họp hoặc thông tin công ty vào ChatGPT',
+            '6. ChatGPT sẽ phân tích nội dung và tạo JSON với các thuật ngữ được trích xuất',
+            '7. Sao chép đầu ra JSON từ ChatGPT',
+            '8. Quay lại ứng dụng và sử dụng tính năng Import để dán JSON',
+          ],
+          image: {
+            src: '/manual/05-context-chatgpt.png',
+            alt: 'Hộp thoại ChatGPT prompt với lựa chọn ngôn ngữ',
+          },
+          note: 'Phương pháp này tự động trích xuất tên riêng, thuật ngữ kỹ thuật và tạo ánh xạ dịch thuật phù hợp.',
+        },
+        {
+          id: 'import-export',
+          title: '3.5 Import và Export',
+          content: [
+            '**Import**: Bạn có thể nhập bộ ngữ cảnh từ tệp JSON. Sử dụng tab Import trong biểu mẫu tạo để dán hoặc tải lên dữ liệu JSON.',
+            '**Export**: Xuất bộ ngữ cảnh hiện có sang JSON để sao lưu hoặc chia sẻ với đồng nghiệp.',
+          ],
+        },
+        {
+          id: 'context-best-practices',
+          title: '3.6 Các phương pháp tốt nhất',
+          content: [
+            'Làm theo các khuyến nghị sau để có kết quả tốt nhất:',
+          ],
+          tips: [
+            'Tạo bộ ngữ cảnh riêng cho từng cặp ngôn ngữ (ví dụ: một cho JA-VI, một cho EN-VI)',
+            'Sử dụng quy ước đặt tên rõ ràng: "[Khách hàng/Dự án] - [Cặp ngôn ngữ]"',
+            'Cập nhật bộ ngữ cảnh khi có thuật ngữ mới được giới thiệu',
+            'Giữ thuật ngữ ngắn gọn - ưu tiên 1-2 từ hơn là các cụm từ dài',
+            'Bao gồm cả thuật ngữ gốc và các biến thể phổ biến',
+          ],
+        },
+      ],
+    },
+    {
+      id: 'create-session',
+      title: '4. Tạo phiên họp',
+      description: 'Thiết lập phiên dịch thuật mới với chế độ và tùy chọn phù hợp',
+      content: [
+        'Sau khi chuẩn bị bộ ngữ cảnh, bạn có thể tạo phiên dịch thuật. Chọn chế độ dịch và các tùy chọn phù hợp nhất với nhu cầu cuộc họp của bạn.',
+      ],
+      image: {
+        src: '/manual/06-session-create.png',
+        alt: 'Biểu mẫu tạo phiên họp',
+      },
+      subsections: [
+        {
+          id: 'one-way-mode',
+          title: '4.1 Chế độ dịch một chiều (One-Way)',
+          content: [
+            'Trong chế độ một chiều, tất cả lời nói đều được dịch sang một ngôn ngữ đích duy nhất.',
+            '**Phù hợp cho**: Cuộc họp mà người tham gia nói nhiều ngôn ngữ nhưng mọi người đều muốn đọc bản dịch bằng một ngôn ngữ chung.',
+            '**Ví dụ**: Đội của bạn muốn tất cả nội dung được dịch sang tiếng Việt, bất kể người nói đang sử dụng tiếng Nhật, tiếng Anh hay tiếng Việt.',
+            'Chỉ cần chọn ngôn ngữ đích và tất cả lời nói được nhận dạng sẽ được dịch sang ngôn ngữ đó.',
+          ],
+        },
+        {
+          id: 'two-way-mode',
+          title: '4.2 Chế độ dịch hai chiều (Two-Way)',
+          content: [
+            'Trong chế độ hai chiều, hệ thống phát hiện ngôn ngữ nào trong hai ngôn ngữ đang được nói và dịch sang ngôn ngữ còn lại.',
+            '**Phù hợp cho**: Cuộc họp song phương với đúng hai ngôn ngữ, nơi cả hai bên đều muốn xem bản dịch bằng ngôn ngữ mẹ đẻ của họ.',
+            '**Ví dụ**: Cuộc họp Nhật-Việt, nơi người tham gia Nhật Bản thấy lời nói tiếng Việt được dịch sang tiếng Nhật, và người tham gia Việt Nam thấy lời nói tiếng Nhật được dịch sang tiếng Việt.',
+            'Chọn Ngôn ngữ A và Ngôn ngữ B. Hệ thống sẽ tự động phát hiện và dịch giữa hai ngôn ngữ.',
+          ],
+        },
+        {
+          id: 'session-options',
+          title: '4.3 Tùy chọn phiên họp',
+          content: [
+            '**Phân biệt người nói (Speaker Diarization)**: Bật tính năng này để nhận dạng các người nói khác nhau (Speaker 1, Speaker 2, v.v.). Hữu ích cho cuộc họp có nhiều người tham gia để theo dõi ai đã nói gì.',
+            '**Chọn ngữ cảnh**: Đính kèm một hoặc nhiều bộ ngữ cảnh để cải thiện độ chính xác nhận dạng cho các thuật ngữ chuyên ngành.',
+          ],
+          image: {
+            src: '/manual/07-session-options.png',
+            alt: 'Tùy chọn phiên họp bao gồm phân biệt người nói và chọn ngữ cảnh',
+          },
+        },
+        {
+          id: 'invite-participants',
+          title: '4.4 Mời người tham gia',
+          content: [
+            'Bạn có thể mời người khác tham gia phiên họp:',
+            '**Qua Email**: Nhập địa chỉ email để gửi lời mời. Người được mời sẽ nhận được thông báo.',
+            '**Qua Mã phiên họp**: Chia sẻ trực tiếp mã phiên họp 6 chữ số. Bất kỳ ai có mã đều có thể tham gia qua trang Tham gia phiên họp.',
+          ],
+          tips: [
+            'Mã phiên họp không phân biệt chữ hoa chữ thường',
+            'Người tham gia được mời có thể xem bản ghi và bản dịch trực tiếp',
+          ],
+        },
+      ],
+    },
+    {
+      id: 'in-meeting',
+      title: '5. Trong cuộc họp',
+      description: 'Cách sử dụng các tính năng dịch thuật trong cuộc họp',
+      content: [
+        'Sau khi phiên họp bắt đầu, bạn sẽ thấy giao diện phiên âm và dịch thuật thời gian thực.',
+      ],
+      image: {
+        src: '/manual/08-in-meeting.png',
+        alt: 'Giao diện phiên âm trong cuộc họp',
+      },
+      note: 'QUAN TRỌNG: Để có kết quả tốt nhất, chỉ CẦN MỘT NGƯỜI tham gia phiên họp và bật microphone. Sử dụng loa ngoài để microphone có thể thu tất cả âm thanh cuộc họp bao gồm cả người tham gia từ xa.',
+      subsections: [
+        {
+          id: 'audio-setup',
+          title: '5.1 Thiết lập âm thanh',
+          content: [
+            'Thiết lập khuyến nghị để thu âm thanh cuộc họp:',
+            '1. Chỉ định một người (thường là chủ phòng) tham gia phiên họp với microphone được bật',
+            '2. Sử dụng loa ngoài với âm lượng phù hợp',
+            '3. Microphone sẽ thu tất cả âm thanh từ phòng họp bao gồm cả người tham gia cuộc họp trực tuyến',
+            '4. Những người tham dự khác có thể xem bản dịch trên thiết bị của họ mà không cần tham gia với tư cách người nói',
+          ],
+          tips: [
+            'Đặt microphone ở vị trí trung tâm phòng họp',
+            'Tránh nhiều người tham gia với microphone được bật - điều này có thể gây ra tiếng vọng và bản ghi trùng lặp',
+            'Kiểm tra mức âm thanh trước khi cuộc họp bắt đầu',
+          ],
+        },
+        {
+          id: 'transcription-view',
+          title: '5.2 Hiểu giao diện hiển thị',
+          content: [
+            'Giao diện cuộc họp hiển thị:',
+            '**Lời nói gốc**: Nội dung được nhận dạng từ âm thanh',
+            '**Bản dịch**: Văn bản đã được dịch sang ngôn ngữ đích của bạn',
+            '**Nhãn người nói**: Nếu phân biệt người nói được bật, người nói sẽ được gắn nhãn (Speaker 1, Speaker 2, v.v.)',
+            'Văn bản xuất hiện theo thời gian thực khi lời nói được nhận dạng. Văn bản ban đầu có thể cập nhật khi AI tinh chỉnh nhận dạng.',
+          ],
+        },
+      ],
+    },
+    {
+      id: 'other-features',
+      title: '6. Các tính năng khác',
+      description: 'Chức năng bổ sung để quản lý phiên họp',
+      subsections: [
+        {
+          id: 'end-session',
+          title: '6.1 Kết thúc phiên họp',
+          content: [
+            'Nhấp vào nút "End Session" để dừng phiên âm và lưu phiên họp.',
+            'Bản ghi hoàn chỉnh với bản dịch sẽ được lưu và có thể truy cập từ lịch sử phiên họp của bạn.',
+          ],
+        },
+        {
+          id: 'display-view',
+          title: '6.2 Chế độ hiển thị (Display View)',
+          content: [
+            'Sử dụng Chế độ hiển thị để chia sẻ bản dịch trên màn hình lớn:',
+            '1. Mở phiên họp và nhấp "Display View" hoặc điều hướng đến /session/[code]/display',
+            '2. Chế độ này cung cấp giao diện chỉ đọc, được tối ưu hóa cho máy chiếu hoặc màn hình lớn',
+            '3. Chia sẻ màn hình này để mọi người trong phòng họp có thể xem bản dịch trực tiếp',
+          ],
+          image: {
+            src: '/manual/09-display-view.png',
+            alt: 'Chế độ hiển thị để chia sẻ trên màn hình lớn',
+          },
+          tips: [
+            'Sử dụng chế độ toàn màn hình (F11) để có trải nghiệm xem tốt nhất',
+            'Điều chỉnh zoom của trình duyệt để dễ đọc từ xa',
+          ],
+        },
+        {
+          id: 'history',
+          title: '6.3 Lịch sử phiên họp',
+          content: [
+            'Truy cập các phiên họp trước từ Bảng điều khiển:',
+            '1. Nhấp "View My Sessions" trên trang chủ',
+            '2. Tìm phiên họp bạn muốn xem lại',
+            '3. Nhấp để mở bản ghi đầy đủ với lời nói gốc và bản dịch',
+            'Bạn có thể xem lại các cuộc họp trước, tìm kiếm nội dung cụ thể và chia sẻ bản ghi nếu cần.',
+          ],
+          image: {
+            src: '/manual/10-history.png',
+            alt: 'Lịch sử phiên họp hiển thị các cuộc họp trước',
+          },
+        },
+      ],
+    },
+  ],
+  footer: {
+    helpText: 'Cần thêm trợ giúp? Liên hệ hỗ trợ tại',
+    contactLink: 'support@example.com',
+  },
+};
