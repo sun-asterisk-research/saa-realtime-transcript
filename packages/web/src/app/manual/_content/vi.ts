@@ -319,7 +319,7 @@ export const viContent: ManualContent = {
     },
   ],
   footer: {
-    helpText: 'Cần thêm trợ giúp? Liên hệ hỗ trợ tại',
-    contactLink: 'support@example.com',
+    helpText: 'Cần thêm trợ giúp? Liên hệ qua Slack channel',
+    channelName: '#con_sun-meeting-support_int',
   },
 };

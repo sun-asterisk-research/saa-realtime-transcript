@@ -34,7 +34,7 @@ export interface ManualContent {
   sections: Section[];
   footer: {
     helpText: string;
-    contactLink: string;
+    channelName: string;
   };
 }
 

@@ -131,12 +131,9 @@ export default function ManualPage() {
             <footer className="border-t border-border-primary pt-8 mt-16">
               <p className="text-text-muted text-sm">
                 {content.footer.helpText}{' '}
-                <a
-                  href={`mailto:${content.footer.contactLink}`}
-                  className="text-plum-600 hover:text-plum-700 underline"
-                >
-                  {content.footer.contactLink}
-                </a>
+                <span className="text-red-600 font-semibold">
+                  {content.footer.channelName}
+                </span>
               </p>
             </footer>
           </div>

@@ -319,7 +319,7 @@ export const enContent: ManualContent = {
     },
   ],
   footer: {
-    helpText: 'Need more help? Contact support at',
-    contactLink: 'support@example.com',
+    helpText: 'Need more help? Contact us via Slack channel',
+    channelName: '#con_sun-meeting-support_int',
   },
 };

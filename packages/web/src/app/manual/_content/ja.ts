@@ -319,7 +319,7 @@ export const jaContent: ManualContent = {
     },
   ],
   footer: {
-    helpText: 'さらにヘルプが必要ですか？サポートにお問い合わせください：',
-    contactLink: 'support@example.com',
+    helpText: 'さらにヘルプが必要ですか？Slackチャンネルでお問い合わせください',
+    channelName: '#con_sun-meeting-support_int',
   },
 };
