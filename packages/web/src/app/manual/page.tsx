@@ -2,14 +2,25 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useUser } from '@/lib/hooks/useUser';
 import { getContent, type Locale } from './_content';
 import { LanguageSelect, Section, TableOfContents } from './_components';
 
 const STORAGE_KEY = 'manual-locale';
 
 export default function ManualPage() {
+  const router = useRouter();
+  const { user, isLoading: isUserLoading } = useUser();
   const [locale, setLocale] = useState<Locale>('en');
   const [isLoaded, setIsLoaded] = useState(false);
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.push('/login?redirect=/manual');
+    }
+  }, [user, isUserLoading, router]);
 
   useEffect(() => {
     // Load saved locale from localStorage
@@ -27,7 +38,7 @@ export default function ManualPage() {
 
   const content = getContent(locale);
 
-  if (!isLoaded) {
+  if (isUserLoading || !user || !isLoaded) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="animate-pulse text-text-muted">Loading...</div>

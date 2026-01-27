@@ -21,7 +21,7 @@ export const enContent: ManualContent = {
         alt: 'Login screen with Sign In button',
       },
       tips: [
-        'Use your work Google account if you want to share sessions with colleagues',
+        'In the current MVP version, the system is limited to internal use within Sun*. You need to sign in with your Sun* account.',
         'Your session history and context sets are linked to your account',
       ],
     },
@@ -188,8 +188,22 @@ export const enContent: ManualContent = {
           },
         },
         {
+          id: 'select-context',
+          title: '4.4 Selecting Context Sets',
+          content: [
+            'During session creation, you can attach context sets to improve transcription and translation accuracy.',
+            'In the "Context Sets" section of the creation form, click "Add Context" to browse and select from your personal and public context sets.',
+            'You can add multiple context sets to a single session. The system will merge all terms and translation mappings from the selected sets.',
+            'If you have not created any context sets yet, refer to section 3 (Context Management) to learn how to create one before starting your session.',
+          ],
+          tips: [
+            'Select context sets that match the meeting topic and language pair',
+            'You can also add or remove context sets after the session has started from the session control panel',
+          ],
+        },
+        {
           id: 'invite-participants',
-          title: '4.4 Inviting Participants',
+          title: '4.5 Inviting Participants',
           content: [
             'You can invite others to join your session:',
             '**By Email**: Enter email addresses to send invitations. Invited users will receive a notification.',
@@ -241,6 +255,17 @@ export const enContent: ManualContent = {
             '**Speaker Labels**: If diarization is enabled, speakers are labeled (Speaker 1, Speaker 2, etc.)',
             'Text appears in real-time as speech is recognized. Initial text may update as the AI refines its recognition.',
           ],
+        },
+        {
+          id: 'recording-cost',
+          title: '5.3 Important: Recording Costs',
+          content: [
+            'When you click "Start Recording", the system opens a connection to the AI transcription service. This connection incurs costs as long as it is active, even if no one is speaking.',
+            'To avoid unnecessary costs:',
+            '1. Click "Stop Recording" when you are not actively using the transcription',
+            '2. Click "End Session" when the meeting is finished',
+          ],
+          note: 'COST WARNING: The AI service connection is billed based on connection time, not speech time. Always stop recording or end the session when not in use.',
         },
       ],
     },
