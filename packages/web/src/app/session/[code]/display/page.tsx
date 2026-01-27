@@ -352,6 +352,7 @@ export default function DisplayPage({ params }: { params: Promise<{ code: string
               targetLanguage={session.target_language || undefined}
               languageA={session.language_a || undefined}
               languageB={session.language_b || undefined}
+              headerBgClass="bg-plum-950"
             />
             <div ref={transcriptEndRef} className="h-4" />
           </div>
