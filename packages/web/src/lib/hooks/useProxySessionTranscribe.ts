@@ -10,6 +10,7 @@ interface UseProxySessionTranscribeParams {
   translationConfig?: TranslationConfig;
   context?: Context;
   enableSpeakerDiarization?: boolean;
+  deviceId?: string;
 }
 
 /**
@@ -28,6 +29,7 @@ export function useProxySessionTranscribe({
   translationConfig,
   context,
   enableSpeakerDiarization = false,
+  deviceId,
 }: UseProxySessionTranscribeParams) {
   const { startTranscription, stopTranscription, state, finalTokens, nonFinalTokens, error } =
     useProxyTranscribe({
@@ -38,6 +40,7 @@ export function useProxySessionTranscribe({
       translationConfig,
       context,
       enableSpeakerDiarization,
+      deviceId,
     });
 
   const start = useCallback(() => {
