@@ -303,6 +303,7 @@ export default function SessionContent({ code }: SessionContentProps) {
     translationConfig,
     context: mergedContext,
     enableSpeakerDiarization: session?.enable_speaker_diarization || false,
+    deviceId: selectedMic || undefined,
   });
 
   // Select which transcribe hook to use based on configuration

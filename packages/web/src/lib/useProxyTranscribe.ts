@@ -61,6 +61,7 @@ interface UseProxyTranscribeParameters {
   translationConfig?: TranslationConfig;
   context?: Context;
   enableSpeakerDiarization?: boolean;
+  deviceId?: string;
   onStarted?: () => void;
   onFinished?: () => void;
 }
@@ -83,6 +84,7 @@ export default function useProxyTranscribe({
   translationConfig,
   context,
   enableSpeakerDiarization = false,
+  deviceId,
   onStarted,
   onFinished,
 }: UseProxyTranscribeParameters) {
@@ -325,10 +327,14 @@ export default function useProxyTranscribe({
       }
 
       // Get microphone access
+      // Echo cancellation and noise suppression are disabled to allow
+      // capturing audio from external speakers (e.g., meeting room setup
+      // where speaker audio is picked up by the microphone for translation).
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
+          deviceId: deviceId ? { exact: deviceId } : undefined,
+          echoCancellation: false,
+          noiseSuppression: false,
           autoGainControl: true,
         },
       });
