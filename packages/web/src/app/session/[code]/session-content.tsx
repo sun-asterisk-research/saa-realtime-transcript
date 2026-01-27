@@ -311,7 +311,7 @@ export default function SessionContent({ code }: SessionContentProps) {
   });
 
   // Select which transcribe hook to use based on configuration
-  const { start, stop, state, streamingOriginal, streamingTranslated, currentSourceLanguage, currentTargetLanguage, currentSpeakerId } =
+  const { start, stop, state, streamingOriginal, streamingTranslated, currentSourceLanguage, currentTargetLanguage, currentSpeakerId, isPaused } =
     PROXY_URL ? proxyTranscribe : directTranscribe;
 
   // Compute local streaming display text based on user's preference
@@ -729,8 +729,20 @@ export default function SessionContent({ code }: SessionContentProps) {
           {/* Recording Status */}
           <div className="mb-5 bg-white rounded-lg p-3 border border-plum-100">
             <div className="flex items-center gap-3">
-              <div className={`w-3 h-3 rounded-full ${isRecording ? 'bg-plum-500 animate-pulse-glow' : 'bg-gray-300'}`} />
-              <span className="text-sm text-text-primary font-medium">{isRecording ? 'Recording...' : 'Ready'}</span>
+              <div className={`w-3 h-3 rounded-full ${
+                isRecording && !isPaused
+                  ? 'bg-plum-500 animate-pulse-glow'
+                  : isRecording && isPaused
+                    ? 'bg-amber-500'
+                    : 'bg-gray-300'
+              }`} />
+              <span className="text-sm text-text-primary font-medium">
+                {isRecording && !isPaused
+                  ? 'Recording...'
+                  : isRecording && isPaused
+                    ? 'Paused'
+                    : 'Ready'}
+              </span>
             </div>
             <div className="text-xs text-text-light mt-1">State: {state}</div>
           </div>

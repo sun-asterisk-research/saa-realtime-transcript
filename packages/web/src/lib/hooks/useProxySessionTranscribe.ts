@@ -31,7 +31,7 @@ export function useProxySessionTranscribe({
   enableSpeakerDiarization = false,
   deviceId,
 }: UseProxySessionTranscribeParams) {
-  const { startTranscription, stopTranscription, state, finalTokens, nonFinalTokens, error } =
+  const { startTranscription, stopTranscription, state, finalTokens, nonFinalTokens, error, isPaused } =
     useProxyTranscribe({
       proxyUrl,
       sessionCode,
@@ -83,6 +83,7 @@ export function useProxySessionTranscribe({
     finalTokens,
     nonFinalTokens,
     error,
+    isPaused,
     // For local streaming display
     streamingOriginal,
     streamingTranslated,

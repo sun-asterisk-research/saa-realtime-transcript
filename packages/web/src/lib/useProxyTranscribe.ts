@@ -6,12 +6,14 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 const END_TOKEN = '<end>';
 
 // RecorderState type compatible with the Soniox SDK
-// Using the actual states from the SDK
+// Using the actual states from the SDK, plus custom states for pause/resume
 type RecorderState =
   | 'Init'
   | 'RequestingMedia'
   | 'OpeningWebSocket'
   | 'Running'
+  | 'Paused'
+  | 'Resuming'
   | 'FinishingProcessing'
   | 'Finished'
   | 'Error'
@@ -138,6 +140,7 @@ export default function useProxyTranscribe({
 
       // Mark that we're resuming
       isResumingRef.current = true;
+      setState('Resuming');
 
       // Send resume command to server - server will recreate Soniox connection
       console.debug('[ProxyTranscribe] Sending resume command to server');
@@ -256,6 +259,7 @@ export default function useProxyTranscribe({
                   mediaRecorderRef.current.stop();
                   isPausedRef.current = true;
                   setIsPaused(true);
+                  setState('Paused');
                 }
                 // Start VAD to detect when user starts speaking again
                 startVAD();

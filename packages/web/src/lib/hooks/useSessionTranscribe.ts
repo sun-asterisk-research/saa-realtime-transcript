@@ -330,6 +330,7 @@ export function useSessionTranscribe({
     finalTokens,
     nonFinalTokens,
     error,
+    isPaused: false, // Direct mode doesn't have server-side pause
     // For local streaming display
     streamingOriginal,
     streamingTranslated,
