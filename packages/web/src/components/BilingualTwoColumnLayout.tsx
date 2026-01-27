@@ -17,12 +17,22 @@ interface BilingualTwoColumnLayoutProps {
   languageA?: string;
   languageB?: string;
   headerBgClass?: string;
+  unreadFromIndex?: number | null;
 }
 
 const LanguageIcon = () => (
   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
   </svg>
+);
+
+// Unread separator component
+const UnreadSeparator = () => (
+  <div className="flex items-center gap-3 my-4 col-span-2">
+    <div className="flex-1 h-px bg-amber-400/60" />
+    <span className="text-amber-400 text-xs font-medium px-2">New messages</span>
+    <div className="flex-1 h-px bg-amber-400/60" />
+  </div>
 );
 
 export function BilingualTwoColumnLayout({
@@ -32,6 +42,7 @@ export function BilingualTwoColumnLayout({
   languageA,
   languageB,
   headerBgClass = 'bg-plum-800',
+  unreadFromIndex,
 }: BilingualTwoColumnLayoutProps) {
   if (items.length === 0) {
     return (
@@ -65,8 +76,12 @@ export function BilingualTwoColumnLayout({
 
         {/* Transcript Rows - each item is a paired row */}
         <div className="space-y-4">
-          {items.map((item) => (
-            <div key={item.id} className="grid grid-cols-2 gap-8">
+          {items.map((item, index) => (
+            <div key={item.id}>
+              {unreadFromIndex !== null && unreadFromIndex !== undefined && index === unreadFromIndex && (
+                <UnreadSeparator />
+              )}
+              <div className="grid grid-cols-2 gap-8">
               {/* Left Cell - Original */}
               <div className="pr-6 border-r border-white/10">
                 <div className="text-white animate-fadeIn">
@@ -127,6 +142,7 @@ export function BilingualTwoColumnLayout({
                   </p>
                 </div>
               </div>
+              </div>
             </div>
           ))}
         </div>
@@ -160,7 +176,7 @@ export function BilingualTwoColumnLayout({
 
       {/* Transcript Rows - each item is a paired row */}
       <div className="space-y-4">
-        {items.map((item) => {
+        {items.map((item, index) => {
           // Language A logic
           const isOriginalA = item.sourceLanguage === languageA;
           const isTranslatedA = item.targetLanguage === languageA && !isOriginalA;
@@ -175,7 +191,11 @@ export function BilingualTwoColumnLayout({
           if (!displayTextA && !displayTextB) return null;
 
           return (
-            <div key={item.id} className="grid grid-cols-2 gap-8">
+            <div key={item.id}>
+              {unreadFromIndex !== null && unreadFromIndex !== undefined && index === unreadFromIndex && (
+                <UnreadSeparator />
+              )}
+              <div className="grid grid-cols-2 gap-8">
               {/* Left Cell - Language A */}
               <div className="pr-6 border-r border-white/10">
                 {displayTextA ? (
@@ -230,6 +250,7 @@ export function BilingualTwoColumnLayout({
                     {item.isStreaming ? 'Translating...' : 'Waiting for translation...'}
                   </div>
                 )}
+              </div>
               </div>
             </div>
           );

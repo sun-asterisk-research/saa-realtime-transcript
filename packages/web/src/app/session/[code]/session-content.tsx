@@ -206,6 +206,7 @@ export default function SessionContent({ code }: SessionContentProps) {
   const router = useRouter();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const transcriptEndRef = useRef<HTMLDivElement>(null);
+  const isUserAtBottomRef = useRef(true);
 
   const [participantInfo, setParticipantInfo] = useState<ParticipantInfo | null>(null);
   const [displayLanguage, setDisplayLanguage] = useState<string>(''); // Current display preference
@@ -214,6 +215,9 @@ export default function SessionContent({ code }: SessionContentProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [isScheduled, setIsScheduled] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [showScrollButton, setShowScrollButton] = useState(false);
+  const [unreadFromIndex, setUnreadFromIndex] = useState<number | null>(null);
+  const lastReadCountRef = useRef(0);
   const { isBilingualMode } = useBilingualMode();
 
   const { session, isLoading: sessionLoading, error: sessionError, endSession } = useSession(code);
@@ -425,15 +429,59 @@ export default function SessionContent({ code }: SessionContentProps) {
     getDevices();
   }, [selectedMic]);
 
-  // Auto-scroll to bottom when content changes
-  useEffect(() => {
+  // Track if user is at the bottom of the scroll area
+  const handleScroll = useCallback(() => {
+    if (scrollContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
+      // Consider "at bottom" if within 100px of the bottom
+      const threshold = 100;
+      const isAtBottom = scrollHeight - scrollTop - clientHeight < threshold;
+      isUserAtBottomRef.current = isAtBottom;
+      setShowScrollButton(!isAtBottom);
+
+      // When user scrolls to bottom, update last read count (but keep separator visible)
+      // Separator will be cleared when new messages arrive while at bottom
+      if (isAtBottom) {
+        lastReadCountRef.current = transcripts.length;
+      }
+    }
+  }, [transcripts.length]);
+
+  // Scroll to bottom handler
+  const scrollToBottom = useCallback(() => {
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollTo({
         top: scrollContainerRef.current.scrollHeight,
         behavior: 'smooth',
       });
+      // Update last read count, but keep separator visible
+      // Separator will be cleared when new messages arrive while at bottom
+      lastReadCountRef.current = transcripts.length;
     }
-  }, [transcripts, streamingTranscripts, currentStreamingText]);
+  }, [transcripts.length]);
+
+  // Auto-scroll to bottom when content changes, but only if user is already at bottom
+  // Also track unread messages when user is scrolled up
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      if (isUserAtBottomRef.current) {
+        scrollContainerRef.current.scrollTo({
+          top: scrollContainerRef.current.scrollHeight,
+          behavior: 'smooth',
+        });
+        // User is at bottom and new messages arrived - clear separator (reading in real-time)
+        if (transcripts.length > lastReadCountRef.current) {
+          setUnreadFromIndex(null);
+        }
+        lastReadCountRef.current = transcripts.length;
+      } else {
+        // User is scrolled up - mark new messages as unread
+        if (transcripts.length > lastReadCountRef.current && unreadFromIndex === null) {
+          setUnreadFromIndex(lastReadCountRef.current);
+        }
+      }
+    }
+  }, [transcripts, streamingTranscripts, currentStreamingText, unreadFromIndex]);
 
   // Initialize and update isScheduled state
   useEffect(() => {
@@ -748,7 +796,7 @@ export default function SessionContent({ code }: SessionContentProps) {
         </div>
 
         {/* Right Panel - Transcripts */}
-        <div className="flex-1 flex flex-col bg-gradient-to-br from-plum-800 to-plum-900 min-h-0">
+        <div className="flex-1 flex flex-col bg-gradient-to-br from-plum-800 to-plum-900 min-h-0 relative">
           {/* Show empty state OR scroll container, not both */}
           {transcripts.length === 0 && streamingTranscripts.size === 0 && !currentStreamingText ? (
             <div className="flex-1 flex items-center justify-center">
@@ -764,6 +812,7 @@ export default function SessionContent({ code }: SessionContentProps) {
           ) : isBilingualMode ? (
             <div
               ref={scrollContainerRef}
+              onScroll={handleScroll}
               className="flex-1 overflow-y-auto p-6 scroll-smooth custom-scrollbar-dark">
               <BilingualTwoColumnLayout
                 items={bilingualItems}
@@ -771,29 +820,42 @@ export default function SessionContent({ code }: SessionContentProps) {
                 targetLanguage={session?.target_language || undefined}
                 languageA={session?.language_a || undefined}
                 languageB={session?.language_b || undefined}
+                unreadFromIndex={unreadFromIndex}
               />
               <div ref={transcriptEndRef} />
             </div>
           ) : (
             <div
               ref={scrollContainerRef}
+              onScroll={handleScroll}
               className="flex-1 overflow-y-auto p-6 scroll-smooth custom-scrollbar-dark">
               <div className="space-y-4">
                 {/* Final transcripts from database */}
-                {transcripts.map((t) => {
+                {transcripts.map((t, index) => {
                   const enableDiarization = session?.enable_speaker_diarization && t.speaker_id;
                   const textColor = enableDiarization
                     ? getSpeakerColor(t.speaker_id!)
                     : getParticipantColor(t.participant_name);
                   const displayData = getDisplayText(t, displayLanguage, session?.mode || 'one_way');
+                  const showUnreadSeparator = unreadFromIndex !== null && index === unreadFromIndex;
                   return (
-                    <div key={t.id} className="text-white animate-fadeIn">
-                      <span className={`${textColor} font-semibold`}>
-                        {t.participant_name}
-                        {enableDiarization && ` (Speaker ${t.speaker_id})`}
-                        {displayData.isTranslated && ' (translated)'}:{' '}
-                      </span>
-                      <span className="text-xl leading-relaxed">{displayData.text}</span>
+                    <div key={t.id}>
+                      {/* Unread messages separator */}
+                      {showUnreadSeparator && (
+                        <div className="flex items-center gap-3 my-4">
+                          <div className="flex-1 h-px bg-amber-400/60" />
+                          <span className="text-amber-400 text-xs font-medium px-2">New messages</span>
+                          <div className="flex-1 h-px bg-amber-400/60" />
+                        </div>
+                      )}
+                      <div className="text-white animate-fadeIn">
+                        <span className={`${textColor} font-semibold`}>
+                          {t.participant_name}
+                          {enableDiarization && ` (Speaker ${t.speaker_id})`}
+                          {displayData.isTranslated && ' (translated)'}:{' '}
+                        </span>
+                        <span className="text-xl leading-relaxed">{displayData.text}</span>
+                      </div>
                     </div>
                   );
                 })}
@@ -853,6 +915,27 @@ export default function SessionContent({ code }: SessionContentProps) {
                 <div ref={transcriptEndRef} />
               </div>
             </div>
+          )}
+
+          {/* Scroll to bottom button - positioned above the FloatingBilingualButton */}
+          {showScrollButton && (
+            <button
+              onClick={scrollToBottom}
+              className="absolute bottom-20 right-4 w-14 h-14 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white rounded-full shadow-lg transition-all duration-200 hover:scale-110 active:scale-95 flex items-center justify-center"
+              aria-label="Scroll to bottom"
+              title={unreadFromIndex !== null && transcripts.length > unreadFromIndex
+                ? `${transcripts.length - unreadFromIndex} new messages`
+                : 'Scroll to bottom'}
+            >
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+              </svg>
+              {unreadFromIndex !== null && transcripts.length > unreadFromIndex && (
+                <span className="absolute -top-1 -right-1 bg-amber-500 text-white text-xs font-bold rounded-full min-w-5 h-5 flex items-center justify-center px-1">
+                  {transcripts.length - unreadFromIndex}
+                </span>
+              )}
+            </button>
           )}
         </div>
       </div>
