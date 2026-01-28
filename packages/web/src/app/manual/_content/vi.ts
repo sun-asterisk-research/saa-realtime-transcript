@@ -231,9 +231,9 @@ export const viContent: ManualContent = {
       subsections: [
         {
           id: 'audio-setup',
-          title: '5.1 Thiết lập âm thanh',
+          title: '5.1 Thiết lập âm thanh (Loa ngoài)',
           content: [
-            'Thiết lập khuyến nghị để thu âm thanh cuộc họp:',
+            'Thiết lập khuyến nghị để thu âm thanh cuộc họp khi sử dụng loa ngoài:',
             '1. Chỉ định một người (thường là host) tham gia session với microphone được bật',
             '2. Sử dụng loa ngoài với âm lượng phù hợp',
             '3. Microphone sẽ thu tất cả âm thanh từ phòng họp bao gồm cả người tham gia cuộc họp trực tuyến',
@@ -246,8 +246,28 @@ export const viContent: ManualContent = {
           ],
         },
         {
+          id: 'chrome-tab-audio',
+          title: '5.2 Chế độ Chrome Tab (Họp từ xa với tai nghe)',
+          content: [
+            'Khi bạn họp trực tuyến và sử dụng tai nghe, âm thanh từ cuộc họp không phát ra loa ngoài nên microphone không thể thu được. Tính năng Chrome Tab Audio giúp giải quyết vấn đề này.',
+            'Cách hoạt động:',
+            '1. Nhấp vào nút "Add Chrome Tab" trong phần Audio Source',
+            '2. Trình duyệt sẽ hiển thị cửa sổ chọn tab - chọn tab chứa cuộc họp (Google Meet, Teams, v.v.)',
+            '3. QUAN TRỌNG: Đánh dấu checkbox "Share audio" (Chia sẻ âm thanh) trước khi nhấn Share',
+            '4. Hệ thống sẽ tự động thu ĐỒNG THỜI cả âm thanh từ microphone của bạn VÀ âm thanh từ Chrome tab',
+            'Khi sử dụng chế độ này, bạn có thể đeo tai nghe để nghe cuộc họp trong khi hệ thống vẫn capture được cả tiếng nói của bạn và tiếng nói của người khác trong cuộc họp.',
+          ],
+          tips: [
+            'Tính năng này chỉ hoạt động trên Chrome và Edge, không hỗ trợ Firefox và Safari',
+            'Đặc biệt hữu ích cho họp từ xa khi sử dụng tai nghe - không cần mở loa ngoài',
+            'Bạn vẫn có thể nói bình thường - microphone sẽ thu âm thanh của bạn',
+            'Nhấp "Remove" để ngắt kết nối Chrome tab và quay lại chế độ chỉ microphone',
+          ],
+          note: 'LƯU Ý: Khi chọn tab để chia sẻ, hãy đảm bảo đã bật "Share audio" để hệ thống có thể thu âm thanh từ tab.',
+        },
+        {
           id: 'transcription-view',
-          title: '5.2 Hiểu giao diện hiển thị',
+          title: '5.3 Hiểu giao diện hiển thị',
           content: [
             'Giao diện cuộc họp hiển thị:',
             '**Lời nói gốc**: Nội dung được nhận dạng từ âm thanh',
@@ -258,7 +278,7 @@ export const viContent: ManualContent = {
         },
         {
           id: 'recording-cost',
-          title: '5.3 Lưu ý quan trọng: Chi phí Recording',
+          title: '5.4 Lưu ý quan trọng: Chi phí Recording',
           content: [
             'Khi bạn nhấn "Start Recording", hệ thống sẽ mở một kết nối đến dịch vụ AI. Kết nối này phát sinh chi phí trong suốt thời gian hoạt động, kể cả khi không có ai nói.',
             'Để tránh phát sinh chi phí không cần thiết:',
