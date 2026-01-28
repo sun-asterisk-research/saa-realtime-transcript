@@ -104,7 +104,7 @@ export function mixAudioStreams(
   const micSource = audioContext.createMediaStreamSource(micStream);
   const tabSource = audioContext.createMediaStreamSource(tabStream);
 
-  // Create gain nodes for volume control
+  // Create gain nodes for volume control of each source
   const micGain = audioContext.createGain();
   const tabGain = audioContext.createGain();
 
@@ -112,19 +112,22 @@ export function mixAudioStreams(
   micGain.gain.value = 1.0;
   tabGain.gain.value = 1.0;
 
-  // Connect sources to gain nodes
+  // Connect sources to their gain nodes
   micSource.connect(micGain);
   tabSource.connect(tabGain);
 
-  // Create a channel merger to combine both audio streams
-  // Using 2 inputs, both going to a mono output
-  const merger = audioContext.createChannelMerger(2);
-  micGain.connect(merger, 0, 0);
-  tabGain.connect(merger, 0, 1);
+  // Create a mixer gain node - connecting multiple sources to same node sums them
+  // This creates a mono mix of both audio sources
+  const mixerGain = audioContext.createGain();
+  mixerGain.gain.value = 1.0;
+
+  // Connect both sources to the mixer (this naturally sums/mixes them into mono)
+  micGain.connect(mixerGain);
+  tabGain.connect(mixerGain);
 
   // Create destination stream
   const destination = audioContext.createMediaStreamDestination();
-  merger.connect(destination);
+  mixerGain.connect(destination);
 
   return {
     mixedStream: destination.stream,
