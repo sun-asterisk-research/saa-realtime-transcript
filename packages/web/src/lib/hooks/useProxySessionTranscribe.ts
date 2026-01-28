@@ -11,6 +11,7 @@ interface UseProxySessionTranscribeParams {
   context?: Context;
   enableSpeakerDiarization?: boolean;
   deviceId?: string;
+  tabAudioStream?: MediaStream | null;
 }
 
 /**
@@ -30,6 +31,7 @@ export function useProxySessionTranscribe({
   context,
   enableSpeakerDiarization = false,
   deviceId,
+  tabAudioStream,
 }: UseProxySessionTranscribeParams) {
   const { startTranscription, stopTranscription, state, finalTokens, nonFinalTokens, error, isPaused } =
     useProxyTranscribe({
@@ -41,6 +43,7 @@ export function useProxySessionTranscribe({
       context,
       enableSpeakerDiarization,
       deviceId,
+      tabAudioStream,
     });
 
   const start = useCallback(() => {
