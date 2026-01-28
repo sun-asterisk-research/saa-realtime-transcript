@@ -21,6 +21,7 @@ import { useSessionContexts } from '@/lib/hooks/useSessionContexts';
 // Check if proxy mode is enabled
 const PROXY_URL = process.env.NEXT_PUBLIC_REALTIME_TRANSCRIBE_ENDPOINT;
 import { ContextManagementPanel } from '@/components/context/ContextManagementPanel';
+import { isTabAudioCaptureSupported, captureTabAudio, stopTabAudioCapture } from '@/lib/tabAudioCapture';
 import { JoinRequestNotifications } from '@/components/join-request-notifications';
 import { InviteModal } from '@/components/invite-modal';
 import type { TranslationConfig, Token } from '@soniox/speech-to-text-web';
@@ -212,6 +213,8 @@ export default function SessionContent({ code }: SessionContentProps) {
   const [displayLanguage, setDisplayLanguage] = useState<string>(''); // Current display preference
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedMic, setSelectedMic] = useState<string>('');
+  const [tabAudioStream, setTabAudioStream] = useState<MediaStream | null>(null);
+  const [tabName, setTabName] = useState<string>('');
   const [isRecording, setIsRecording] = useState(false);
   const [isScheduled, setIsScheduled] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
@@ -308,6 +311,7 @@ export default function SessionContent({ code }: SessionContentProps) {
     context: mergedContext,
     enableSpeakerDiarization: session?.enable_speaker_diarization || false,
     deviceId: selectedMic || undefined,
+    tabAudioStream,
   });
 
   // Select which transcribe hook to use based on configuration
@@ -523,6 +527,35 @@ export default function SessionContent({ code }: SessionContentProps) {
     }
   }, [endSession]);
 
+  // Handle tab audio capture
+  const handleStartTabAudio = useCallback(async () => {
+    try {
+      const result = await captureTabAudio();
+      if (result) {
+        setTabAudioStream(result.stream);
+        setTabName(result.tabName);
+
+        // Listen for when the tab stream ends (user stops sharing or closes tab)
+        result.stream.getAudioTracks().forEach((track) => {
+          track.onended = () => {
+            setTabAudioStream(null);
+            setTabName('');
+          };
+        });
+      }
+    } catch (error) {
+      console.error('Failed to capture tab audio:', error);
+    }
+  }, []);
+
+  const handleStopTabAudio = useCallback(() => {
+    if (tabAudioStream) {
+      stopTabAudioCapture(tabAudioStream);
+      setTabAudioStream(null);
+      setTabName('');
+    }
+  }, [tabAudioStream]);
+
   // Handle display language change
   const handleDisplayLanguageChange = useCallback(
     async (newLanguage: string) => {
@@ -695,6 +728,58 @@ export default function SessionContent({ code }: SessionContentProps) {
               <p className="text-text-light text-xs mt-1.5">Showing both original and translated text</p>
             )}
           </div>
+
+          {/* Tab Audio Capture - Only show in proxy mode and on supported browsers */}
+          {PROXY_URL && isTabAudioCaptureSupported() && (
+            <div className="mb-5">
+              <label className="block text-text-secondary mb-2 text-sm font-medium">
+                Tab Audio
+              </label>
+              {tabAudioStream ? (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-emerald-700 text-sm font-medium">Recording from tab</span>
+                  </div>
+                  <p className="text-emerald-600 text-xs truncate mb-2" title={tabName}>
+                    {tabName}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleStopTabAudio}
+                    disabled={isRecording}
+                    className="w-full px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 border border-red-200 rounded hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    Stop Tab Audio
+                  </button>
+                  {isRecording && (
+                    <p className="text-amber-600 text-xs mt-1.5">
+                      Stop recording to change tab audio settings
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <button
+                    type="button"
+                    onClick={handleStartTabAudio}
+                    disabled={isRecording || isScheduled}
+                    className="w-full px-3 py-2 text-sm font-medium text-plum-700 bg-plum-50 border border-plum-200 rounded-lg hover:bg-plum-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    <span className="flex items-center justify-center gap-2">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                      Record from Browser Tab
+                    </span>
+                  </button>
+                  <p className="text-text-light text-xs mt-1.5">
+                    Capture audio from Meet, Teams, or other Chrome tabs
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Microphone Selection */}
           <div className="mb-5">

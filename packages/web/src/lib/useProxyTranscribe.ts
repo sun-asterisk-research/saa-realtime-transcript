@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { TranslationConfig, Context, Token } from '@soniox/speech-to-text-web';
 import { MicVAD } from '@ricky0123/vad-web';
 import { getSupabaseClient } from '@/lib/supabase/client';
+import { mixAudioStreams } from '@/lib/tabAudioCapture';
 
 const END_TOKEN = '<end>';
 
@@ -64,6 +65,7 @@ interface UseProxyTranscribeParameters {
   context?: Context;
   enableSpeakerDiarization?: boolean;
   deviceId?: string;
+  tabAudioStream?: MediaStream | null;
   onStarted?: () => void;
   onFinished?: () => void;
 }
@@ -87,12 +89,15 @@ export default function useProxyTranscribe({
   context,
   enableSpeakerDiarization = false,
   deviceId,
+  tabAudioStream,
   onStarted,
   onFinished,
 }: UseProxyTranscribeParameters) {
   const wsRef = useRef<WebSocket | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
+  const micStreamRef = useRef<MediaStream | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
   const vadRef = useRef<Awaited<ReturnType<typeof MicVAD.new>> | null>(null);
   const vadInitPromiseRef = useRef<Promise<Awaited<ReturnType<typeof MicVAD.new>> | null> | null>(null);
   const isPausedRef = useRef<boolean>(false);
@@ -334,7 +339,7 @@ export default function useProxyTranscribe({
       // Echo cancellation and noise suppression are disabled to allow
       // capturing audio from external speakers (e.g., meeting room setup
       // where speaker audio is picked up by the microphone for translation).
-      const stream = await navigator.mediaDevices.getUserMedia({
+      const micStream = await navigator.mediaDevices.getUserMedia({
         audio: {
           deviceId: deviceId ? { exact: deviceId } : undefined,
           echoCancellation: false,
@@ -342,7 +347,23 @@ export default function useProxyTranscribe({
           autoGainControl: true,
         },
       });
-      mediaStreamRef.current = stream;
+      micStreamRef.current = micStream;
+
+      // Determine the stream to use for recording
+      let recordingStream: MediaStream;
+
+      if (tabAudioStream && tabAudioStream.getAudioTracks().length > 0) {
+        // Mix microphone and tab audio together
+        console.debug('[ProxyTranscribe] Mixing microphone and tab audio streams');
+        const { mixedStream, audioContext } = mixAudioStreams(micStream, tabAudioStream);
+        audioContextRef.current = audioContext;
+        recordingStream = mixedStream;
+      } else {
+        // Use microphone only
+        recordingStream = micStream;
+      }
+
+      mediaStreamRef.current = recordingStream;
 
       // Connect to proxy server
       const ws = new WebSocket(proxyUrl);
@@ -368,7 +389,7 @@ export default function useProxyTranscribe({
         ws.send(JSON.stringify(config));
 
         // Start recording
-        const mediaRecorder = new MediaRecorder(stream, {
+        const mediaRecorder = new MediaRecorder(recordingStream, {
           mimeType: 'audio/webm;codecs=opus',
         });
         mediaRecorderRef.current = mediaRecorder;
@@ -415,6 +436,7 @@ export default function useProxyTranscribe({
     translationConfig,
     context,
     enableSpeakerDiarization,
+    tabAudioStream,
     handleProxyMessage,
   ]);
 
@@ -430,8 +452,15 @@ export default function useProxyTranscribe({
       mediaRecorderRef.current?.stop();
     }
 
-    // Stop media stream tracks
+    // Stop media stream tracks (both mixed stream and original mic stream)
     mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
+    micStreamRef.current?.getTracks().forEach((track) => track.stop());
+
+    // Close audio context used for mixing
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
+    }
 
     // Send stop signal to proxy
     if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -456,6 +485,11 @@ export default function useProxyTranscribe({
         mediaRecorderRef.current?.stop();
       }
       mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
+      micStreamRef.current?.getTracks().forEach((track) => track.stop());
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+        audioContextRef.current = null;
+      }
       if (wsRef.current?.readyState === WebSocket.OPEN) {
         wsRef.current.close();
       }
