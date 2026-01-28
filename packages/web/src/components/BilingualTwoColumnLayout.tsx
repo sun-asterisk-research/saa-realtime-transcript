@@ -57,7 +57,7 @@ export function BilingualTwoColumnLayout({
     return (
       <div>
         {/* Sticky Header Row */}
-        <div className={`sticky top-0 z-20 ${headerBgClass} pt-6 pb-4 mb-4 border-b border-white/10 shadow-lg -mt-6`}>
+        <div className={`sticky top-0 z-20 ${headerBgClass} pt-6 pb-4 mb-4 border-b border-white/10 shadow-lg`}>
           <div className="grid grid-cols-2 gap-8">
             <div className="pr-6">
               <h3 className="text-plum-200 font-semibold text-lg uppercase tracking-wide flex items-center gap-2">
@@ -157,7 +157,7 @@ export function BilingualTwoColumnLayout({
   return (
     <div>
       {/* Sticky Header Row */}
-      <div className={`sticky top-0 z-20 ${headerBgClass} pt-6 pb-4 mb-4 border-b border-white/10 shadow-lg -mt-6`}>
+      <div className={`sticky top-0 z-20 ${headerBgClass} pt-6 pb-4 mb-4 border-b border-white/10 shadow-lg`}>
         <div className="grid grid-cols-2 gap-8">
           <div className="pr-6">
             <h3 className="text-plum-200 font-semibold text-lg uppercase tracking-wide flex items-center gap-2">

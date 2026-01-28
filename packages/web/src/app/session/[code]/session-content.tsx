@@ -825,7 +825,7 @@ export default function SessionContent({ code }: SessionContentProps) {
             <div
               ref={scrollContainerRef}
               onScroll={handleScroll}
-              className="flex-1 overflow-y-auto p-6 scroll-smooth custom-scrollbar-dark">
+              className="flex-1 overflow-y-auto px-6 pb-6 scroll-smooth custom-scrollbar-dark">
               <BilingualTwoColumnLayout
                 items={bilingualItems}
                 mode={session?.mode || 'one_way'}
