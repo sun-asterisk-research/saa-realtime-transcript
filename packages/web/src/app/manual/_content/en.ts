@@ -249,12 +249,12 @@ export const enContent: ManualContent = {
           id: 'chrome-tab-audio',
           title: '5.2 Chrome Tab Mode (Remote Meetings with Headphones)',
           content: [
-            'When you are in an online meeting using headphones, the meeting audio is not played through external speakers, so the microphone cannot capture it. The Chrome Tab Audio feature solves this problem.',
+            'When you are in an online meeting using headphones, the meeting audio is not played through external speakers, so the microphone cannot capture it. The Tab Audio feature solves this problem.',
             'How it works:',
-            '1. Click the "Add Chrome Tab" button in the Audio Source section',
+            '1. Click the "Record from Browser Tab" button in the Tab Audio section',
             '2. The browser will show a tab picker - select the tab containing your meeting (Google Meet, Teams, etc.)',
             '3. IMPORTANT: Check the "Share audio" checkbox before clicking Share',
-            '4. The system will automatically capture BOTH your microphone audio AND the Chrome tab audio SIMULTANEOUSLY',
+            '4. The system will automatically capture BOTH your microphone audio AND the browser tab audio SIMULTANEOUSLY',
             'When using this mode, you can wear headphones to listen to the meeting while the system captures both your voice and the voices of other meeting participants.',
           ],
           tips: [

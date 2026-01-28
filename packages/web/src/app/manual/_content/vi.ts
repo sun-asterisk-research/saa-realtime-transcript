@@ -249,12 +249,12 @@ export const viContent: ManualContent = {
           id: 'chrome-tab-audio',
           title: '5.2 Chế độ Chrome Tab (Họp từ xa với tai nghe)',
           content: [
-            'Khi bạn họp trực tuyến và sử dụng tai nghe, âm thanh từ cuộc họp không phát ra loa ngoài nên microphone không thể thu được. Tính năng Chrome Tab Audio giúp giải quyết vấn đề này.',
+            'Khi bạn họp trực tuyến và sử dụng tai nghe, âm thanh từ cuộc họp không phát ra loa ngoài nên microphone không thể thu được. Tính năng Tab Audio giúp giải quyết vấn đề này.',
             'Cách hoạt động:',
-            '1. Nhấp vào nút "Add Chrome Tab" trong phần Audio Source',
+            '1. Nhấp vào nút "Record from Browser Tab" trong phần Tab Audio',
             '2. Trình duyệt sẽ hiển thị cửa sổ chọn tab - chọn tab chứa cuộc họp (Google Meet, Teams, v.v.)',
             '3. QUAN TRỌNG: Đánh dấu checkbox "Share audio" (Chia sẻ âm thanh) trước khi nhấn Share',
-            '4. Hệ thống sẽ tự động thu ĐỒNG THỜI cả âm thanh từ microphone của bạn VÀ âm thanh từ Chrome tab',
+            '4. Hệ thống sẽ tự động thu ĐỒNG THỜI cả âm thanh từ microphone của bạn VÀ âm thanh từ browser tab',
             'Khi sử dụng chế độ này, bạn có thể đeo tai nghe để nghe cuộc họp trong khi hệ thống vẫn capture được cả tiếng nói của bạn và tiếng nói của người khác trong cuộc họp.',
           ],
           tips: [
