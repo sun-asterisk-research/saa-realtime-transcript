@@ -231,9 +231,9 @@ export const enContent: ManualContent = {
       subsections: [
         {
           id: 'audio-setup',
-          title: '5.1 Audio Setup',
+          title: '5.1 Audio Setup (External Speakers)',
           content: [
-            'The recommended setup for capturing meeting audio:',
+            'The recommended setup for capturing meeting audio when using external speakers:',
             '1. Have one designated person (usually the host) join the session with microphone enabled',
             '2. Use external speakers at adequate volume',
             '3. The microphone will capture all audio from the room including online meeting participants',
@@ -246,8 +246,28 @@ export const enContent: ManualContent = {
           ],
         },
         {
+          id: 'chrome-tab-audio',
+          title: '5.2 Chrome Tab Mode (Remote Meetings with Headphones)',
+          content: [
+            'When you are in an online meeting using headphones, the meeting audio is not played through external speakers, so the microphone cannot capture it. The Chrome Tab Audio feature solves this problem.',
+            'How it works:',
+            '1. Click the "Add Chrome Tab" button in the Audio Source section',
+            '2. The browser will show a tab picker - select the tab containing your meeting (Google Meet, Teams, etc.)',
+            '3. IMPORTANT: Check the "Share audio" checkbox before clicking Share',
+            '4. The system will automatically capture BOTH your microphone audio AND the Chrome tab audio SIMULTANEOUSLY',
+            'When using this mode, you can wear headphones to listen to the meeting while the system captures both your voice and the voices of other meeting participants.',
+          ],
+          tips: [
+            'This feature only works on Chrome and Edge, not supported on Firefox and Safari',
+            'Especially useful for remote meetings when using headphones - no need for external speakers',
+            'You can still speak normally - the microphone will capture your voice',
+            'Click "Remove" to disconnect the Chrome tab and return to microphone-only mode',
+          ],
+          note: 'NOTE: When selecting a tab to share, make sure to enable "Share audio" so the system can capture audio from the tab.',
+        },
+        {
           id: 'transcription-view',
-          title: '5.2 Understanding the Display',
+          title: '5.3 Understanding the Display',
           content: [
             'The meeting interface shows:',
             '**Original Speech**: What was recognized from the audio',
@@ -258,7 +278,7 @@ export const enContent: ManualContent = {
         },
         {
           id: 'recording-cost',
-          title: '5.3 Important: Recording Costs',
+          title: '5.4 Important: Recording Costs',
           content: [
             'When you click "Start Recording", the system opens a connection to the AI transcription service. This connection incurs costs as long as it is active, even if no one is speaking.',
             'To avoid unnecessary costs:',
