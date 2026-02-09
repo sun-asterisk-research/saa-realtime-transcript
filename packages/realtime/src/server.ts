@@ -45,11 +45,12 @@ function createSonioxConnection(
     const sonioxConfig: SonioxConfig = {
       api_key: env.SONIOX_API_KEY,
       audio_format: 'auto',
-      model: config.model || 'stt-rt-preview',
+      model: 'stt-rt-v4',
       language_hints: config.languageHints,
       enable_language_identification: config.enableLanguageIdentification ?? true,
       enable_speaker_diarization: config.enableSpeakerDiarization ?? false,
       enable_endpoint_detection: config.enableEndpointDetection ?? true,
+      max_endpoint_delay_ms: env.MAX_ENDPOINT_DELAY_MS,
       translation: config.translation,
       context: config.context,
     };

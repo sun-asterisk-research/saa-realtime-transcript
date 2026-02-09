@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, use, useState, useMemo } from 'react';
+import { useEffect, useRef, use, useState, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useSession } from '@/lib/hooks/useSession';
 import { useTranscripts } from '@/lib/hooks/useTranscripts';
@@ -141,8 +141,12 @@ export default function DisplayPage({ params }: { params: Promise<{ code: string
   const searchParams = useSearchParams();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const transcriptEndRef = useRef<HTMLDivElement>(null);
+  const isUserAtBottomRef = useRef(true);
+  const lastReadCountRef = useRef(0);
 
   const [displayLanguage, setDisplayLanguage] = useState<string>('');
+  const [showScrollButton, setShowScrollButton] = useState(false);
+  const [unreadFromIndex, setUnreadFromIndex] = useState<number | null>(null);
   const { isBilingualMode, toggleBilingualMode } = useBilingualMode();
 
   const { session, isLoading, error } = useSession(code);
@@ -236,15 +240,55 @@ export default function DisplayPage({ params }: { params: Promise<{ code: string
     localStorage.setItem(`display_lang_${code}`, newLang);
   };
 
-  // Auto-scroll to bottom smoothly when content changes
-  useEffect(() => {
+  // Track if user is at the bottom of the scroll area
+  const handleScroll = useCallback(() => {
+    if (scrollContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
+      // Consider "at bottom" if within 100px of the bottom
+      const threshold = 100;
+      const isAtBottom = scrollHeight - scrollTop - clientHeight < threshold;
+      isUserAtBottomRef.current = isAtBottom;
+      setShowScrollButton(!isAtBottom);
+
+      // When user scrolls to bottom, update last read count
+      if (isAtBottom) {
+        lastReadCountRef.current = transcripts.length;
+      }
+    }
+  }, [transcripts.length]);
+
+  // Scroll to bottom handler
+  const scrollToBottom = useCallback(() => {
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollTo({
         top: scrollContainerRef.current.scrollHeight,
         behavior: 'smooth',
       });
+      lastReadCountRef.current = transcripts.length;
     }
-  }, [transcripts, streamingTranscripts]);
+  }, [transcripts.length]);
+
+  // Auto-scroll to bottom when content changes, but only if user is already at bottom
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      if (isUserAtBottomRef.current) {
+        scrollContainerRef.current.scrollTo({
+          top: scrollContainerRef.current.scrollHeight,
+          behavior: 'smooth',
+        });
+        // User is at bottom and new messages arrived - clear separator
+        if (transcripts.length > lastReadCountRef.current) {
+          setUnreadFromIndex(null);
+        }
+        lastReadCountRef.current = transcripts.length;
+      } else {
+        // User is scrolled up - mark new messages as unread
+        if (transcripts.length > lastReadCountRef.current && unreadFromIndex === null) {
+          setUnreadFromIndex(lastReadCountRef.current);
+        }
+      }
+    }
+  }, [transcripts, streamingTranscripts, unreadFromIndex]);
 
   if (isLoading) {
     return (
@@ -342,7 +386,8 @@ export default function DisplayPage({ params }: { params: Promise<{ code: string
       {/* Transcripts - Scrollable */}
       <div
         ref={scrollContainerRef}
-        className="flex-1 overflow-y-auto px-6 pb-6 scroll-smooth"
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto px-6 pb-6 scroll-smooth relative"
       >
         {isBilingualMode ? (
           <div className="max-w-7xl mx-auto">
@@ -428,6 +473,27 @@ export default function DisplayPage({ params }: { params: Promise<{ code: string
               </div>
             )}
           </div>
+        )}
+
+        {/* Scroll to bottom button */}
+        {showScrollButton && (
+          <button
+            onClick={scrollToBottom}
+            className="fixed bottom-24 right-8 w-14 h-14 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white rounded-full shadow-lg transition-all duration-200 hover:scale-110 active:scale-95 flex items-center justify-center cursor-pointer z-40"
+            aria-label="Scroll to bottom"
+            title={unreadFromIndex !== null && transcripts.length > unreadFromIndex
+              ? `${transcripts.length - unreadFromIndex} new messages`
+              : 'Scroll to bottom'}
+          >
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+            </svg>
+            {unreadFromIndex !== null && transcripts.length > unreadFromIndex && (
+              <span className="absolute -top-1 -right-1 bg-amber-500 text-white text-xs font-bold rounded-full min-w-6 h-6 flex items-center justify-center px-1.5">
+                {transcripts.length - unreadFromIndex}
+              </span>
+            )}
+          </button>
         )}
       </div>
 

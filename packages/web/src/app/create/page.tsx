@@ -17,20 +17,16 @@ export default function CreateSession() {
   const { user, isLoading: isUserLoading } = useUser();
   const [hostName, setHostName] = useState('');
   const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
   const [mode, setMode] = useState<TranslationMode>('one_way');
   const [targetLanguage, setTargetLanguage] = useState('vi');
   const [languagePair, setLanguagePair] = useState(0);
   const [preferredLanguage, setPreferredLanguage] = useState(''); // For two-way mode
-  const [scheduledStartTime, setScheduledStartTime] = useState('');
   const [isPublic, setIsPublic] = useState(false);
   const [invitedEmails, setInvitedEmails] = useState<string[]>([]);
   const [selectedContextIds, setSelectedContextIds] = useState<string[]>([]);
-  const [enableSpeakerDiarization, setEnableSpeakerDiarization] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [userTimezone, setUserTimezone] = useState('');
 
   // Fetch all context sets to show selected ones
   const { contextSets } = useContextSets(user?.id);
@@ -49,12 +45,6 @@ export default function CreateSession() {
       setHostName(name);
     }
   }, [user, hostName]);
-
-  // Get user's timezone
-  useEffect(() => {
-    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    setUserTimezone(timezone);
-  }, []);
 
   // Get current language pair for two-way mode
   const currentPair = LANGUAGE_PAIRS.two_way[languagePair];
@@ -85,30 +75,13 @@ export default function CreateSession() {
     setIsLoading(true);
 
     try {
-      // Validate and convert scheduled start time if provided
-      let scheduledStartTimeISO: string | undefined = undefined;
-      if (scheduledStartTime) {
-        // datetime-local returns "YYYY-MM-DDTHH:mm" which is interpreted as local time
-        // Convert it to a proper ISO string with timezone
-        const scheduledDate = new Date(scheduledStartTime);
-        if (scheduledDate <= new Date()) {
-          setError('Scheduled start time must be in the future');
-          setIsLoading(false);
-          return;
-        }
-        // toISOString() converts to UTC, which is what we want for storage
-        scheduledStartTimeISO = scheduledDate.toISOString();
-      }
-
       const body: Record<string, any> = {
         hostName,
         title,
-        description: description || undefined,
         mode,
-        scheduledStartTime: scheduledStartTimeISO,
         isPublic,
         invitedEmails,
-        enableSpeakerDiarization,
+        enableSpeakerDiarization: true, // Always enabled
       };
 
       if (mode === 'one_way') {
@@ -197,29 +170,6 @@ export default function CreateSession() {
                 />
               </div>
 
-              {/* Description */}
-              <div>
-                <label className="block text-text-primary font-medium mb-2">Description (Optional)</label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Add notes about this session..."
-                  className="w-full px-4 py-2.5 bg-white border border-plum-200 rounded-lg text-text-primary placeholder:text-text-light min-h-[100px] resize-y focus:border-plum-500 focus:ring-2 focus:ring-plum-500/20 focus:outline-none transition-all"
-                  rows={3}
-                />
-              </div>
-
-              {/* Your Name */}
-              <div>
-                <label className="block text-text-primary font-medium mb-2">Your Name</label>
-                <Input
-                  value={hostName}
-                  onChange={(e) => setHostName(e.target.value)}
-                  placeholder="Enter your name"
-                  required
-                />
-              </div>
-
               {/* Translation Mode */}
               <div>
                 <label className="block text-text-primary font-medium mb-2">Translation Mode</label>
@@ -274,51 +224,6 @@ export default function CreateSession() {
                   </div>
                 </>
               )}
-
-              {/* Speaker Diarization */}
-              <div className="bg-plum-50 rounded-xl p-4 border border-plum-100">
-                <label className="flex items-start gap-3 cursor-pointer group">
-                  <div className="relative mt-0.5">
-                    <input
-                      type="checkbox"
-                      checked={enableSpeakerDiarization}
-                      onChange={(e) => setEnableSpeakerDiarization(e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-5 h-5 border-2 border-plum-300 rounded peer-checked:border-plum-500 peer-checked:bg-plum-500 transition-colors flex items-center justify-center">
-                      {enableSpeakerDiarization && (
-                        <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-text-primary font-medium group-hover:text-plum-600 transition-colors">
-                      Enable Speaker Diarization
-                    </span>
-                    <p className="text-text-muted text-sm mt-1">
-                      Identify different speakers when multiple people speak into the same microphone. Useful for offline
-                      meetings where everyone shares one mic.
-                    </p>
-                  </div>
-                </label>
-              </div>
-
-              {/* Scheduled Start Time */}
-              <div>
-                <label className="block text-text-primary font-medium mb-2">
-                  Schedule for Later (Optional)
-                  {userTimezone && <span className="text-text-muted text-sm ml-2 font-normal">({userTimezone})</span>}
-                </label>
-                <input
-                  type="datetime-local"
-                  value={scheduledStartTime}
-                  onChange={(e) => setScheduledStartTime(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-white border border-plum-200 rounded-lg text-text-primary focus:border-plum-500 focus:ring-2 focus:ring-plum-500/20 focus:outline-none transition-all"
-                />
-                <p className="text-text-muted text-sm mt-2">Leave empty to start immediately</p>
-              </div>
 
               {/* Privacy Settings */}
               <div>

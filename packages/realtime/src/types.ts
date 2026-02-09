@@ -43,6 +43,7 @@ export interface SonioxConfig {
   enable_language_identification?: boolean;
   enable_speaker_diarization?: boolean;
   enable_endpoint_detection?: boolean;
+  max_endpoint_delay_ms?: number;
   translation?: TranslationConfig;
   context?: Context;
 }

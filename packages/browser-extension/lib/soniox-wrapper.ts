@@ -48,7 +48,7 @@ export class SonioxWrapper {
 
     // Start transcription with same config as web app
     await this.client.start({
-      model: 'stt-rt-preview',
+      model: 'stt-rt-v4',
       enableLanguageIdentification: true,
       enableSpeakerDiarization: true,
       enableEndpointDetection: true,

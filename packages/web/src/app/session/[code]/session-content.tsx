@@ -4,13 +4,16 @@ import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/button';
-import { Select } from '@/components/select';
 import { CountdownTimer } from '@/components/countdown-timer';
-import { BilingualToggle } from '@/components/BilingualToggle';
-import { FloatingBilingualButton } from '@/components/FloatingBilingualButton';
-import { BilingualTranscriptDisplay } from '@/components/BilingualTranscriptDisplay';
 import { BilingualTwoColumnLayout } from '@/components/BilingualTwoColumnLayout';
 import { useBilingualMode } from '@/contexts/BilingualModeContext';
+import {
+  SessionHeader,
+  SessionToolbar,
+  ParticipantsPanel,
+  SettingsPanel,
+  ContextModal,
+} from '@/components/session';
 import { useSession } from '@/lib/hooks/useSession';
 import { useParticipants } from '@/lib/hooks/useParticipants';
 import { useTranscripts } from '@/lib/hooks/useTranscripts';
@@ -20,7 +23,6 @@ import { useSessionContexts } from '@/lib/hooks/useSessionContexts';
 
 // Check if proxy mode is enabled
 const PROXY_URL = process.env.NEXT_PUBLIC_REALTIME_TRANSCRIBE_ENDPOINT;
-import { ContextManagementPanel } from '@/components/context/ContextManagementPanel';
 import { isTabAudioCaptureSupported, captureTabAudio, stopTabAudioCapture } from '@/lib/tabAudioCapture';
 import { JoinRequestNotifications } from '@/components/join-request-notifications';
 import { InviteModal } from '@/components/invite-modal';
@@ -220,8 +222,11 @@ export default function SessionContent({ code }: SessionContentProps) {
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [unreadFromIndex, setUnreadFromIndex] = useState<number | null>(null);
+  const [isParticipantsPanelOpen, setIsParticipantsPanelOpen] = useState(false);
+  const [isSettingsPanelOpen, setIsSettingsPanelOpen] = useState(false);
+  const [isContextModalOpen, setIsContextModalOpen] = useState(false);
   const lastReadCountRef = useRef(0);
-  const { isBilingualMode } = useBilingualMode();
+  const { isBilingualMode, toggleBilingualMode } = useBilingualMode();
 
   const { session, isLoading: sessionLoading, error: sessionError, endSession } = useSession(code);
   const { participants, leaveSession } = useParticipants(session?.id, code);
@@ -661,239 +666,39 @@ export default function SessionContent({ code }: SessionContentProps) {
     );
   }
 
+  const activeParticipantCount = participants.filter((p) => !p.left_at).length;
+
   return (
     <div className="h-screen flex flex-col bg-white overflow-hidden">
+      {/* Header */}
+      <SessionHeader
+        session={session}
+        code={code}
+        participantCount={activeParticipantCount}
+        onOpenSettings={() => setIsSettingsPanelOpen(true)}
+        onOpenParticipants={() => setIsParticipantsPanelOpen(true)}
+      />
+
       {/* Countdown Banner */}
       {isScheduled && (
-        <div className="bg-amber-50 border-b border-amber-200 p-4 text-center flex-shrink-0">
-          <div className="text-amber-800 flex items-center justify-center gap-3">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="bg-amber-50 border-b border-amber-200 p-3 text-center flex-shrink-0">
+          <div className="text-amber-800 flex items-center justify-center gap-3 text-sm">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span className="font-medium">Session scheduled to start in</span>
+            <span className="font-medium">Session starts in</span>
             <CountdownTimer targetTime={session.scheduled_start_time!} onComplete={() => setIsScheduled(false)} />
           </div>
-          <p className="text-amber-600 text-sm mt-1">
-            Recording will be enabled when the session starts at the scheduled time.
-          </p>
         </div>
       )}
 
-      {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Panel - Controls */}
-        <div className="w-80 bg-surface-light p-5 flex flex-col border-r border-plum-100 flex-shrink-0">
-          {/* Session Info */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-lg font-semibold text-text-primary truncate flex-1">
-                {session.title || `Session: ${code}`}
-              </h2>
-              <Link
-                href={`/session/${code}/display`}
-                target="_blank"
-                className="text-sm text-plum-600 hover:text-plum-700 font-medium flex-shrink-0 ml-2">
-                Display View
-              </Link>
-            </div>
-            {session.description && (
-              <p className="text-sm text-text-muted mb-2">{session.description}</p>
-            )}
-            <div className="text-sm text-text-secondary bg-white rounded-lg px-3 py-2 border border-plum-100">
-              Mode: {session.mode === 'one_way' ? 'One-way' : 'Two-way'}
-              {session.mode === 'one_way' && ` → ${session.target_language?.toUpperCase()}`}
-              {session.mode === 'two_way' && ` (${session.language_a?.toUpperCase()} ↔ ${session.language_b?.toUpperCase()})`}
-            </div>
-          </div>
+      {/* Join Request Notifications - only for host */}
+      {participantInfo?.isHost && (
+        <JoinRequestNotifications sessionId={session.id} sessionCode={code} />
+      )}
 
-          {/* Display Language Selector - only for two-way mode, disabled in bilingual mode */}
-          {session.mode === 'two_way' && session.language_a && session.language_b && !isBilingualMode && (
-            <div className="mb-5">
-              <label className="block text-text-secondary mb-2 text-sm font-medium">Display Language</label>
-              <Select
-                value={displayLanguage}
-                onChange={(e) => handleDisplayLanguageChange(e.target.value)}
-                className="text-sm">
-                <option value={session.language_a}>{session.language_a.toUpperCase()}</option>
-                <option value={session.language_b}>{session.language_b.toUpperCase()}</option>
-              </Select>
-              <p className="text-text-light text-xs mt-1.5">All transcripts shown in this language</p>
-            </div>
-          )}
-
-          {/* Bilingual Mode Toggle */}
-          <div className="mb-5">
-            <BilingualToggle />
-            {isBilingualMode && (
-              <p className="text-text-light text-xs mt-1.5">Showing both original and translated text</p>
-            )}
-          </div>
-
-          {/* Tab Audio Capture - Only show in proxy mode and on supported browsers */}
-          {PROXY_URL && isTabAudioCaptureSupported() && (
-            <div className="mb-5">
-              <label className="block text-text-secondary mb-2 text-sm font-medium">
-                Tab Audio
-              </label>
-              {tabAudioStream ? (
-                <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-emerald-700 text-sm font-medium">Recording from tab</span>
-                  </div>
-                  <p className="text-emerald-600 text-xs truncate mb-2" title={tabName}>
-                    {tabName}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={handleStopTabAudio}
-                    disabled={isRecording}
-                    className="w-full px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 border border-red-200 rounded hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                  >
-                    Stop Tab Audio
-                  </button>
-                  {isRecording && (
-                    <p className="text-amber-600 text-xs mt-1.5">
-                      Stop recording to change tab audio settings
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <div>
-                  <button
-                    type="button"
-                    onClick={handleStartTabAudio}
-                    disabled={isRecording || isScheduled}
-                    className="w-full px-3 py-2 text-sm font-medium text-plum-700 bg-plum-50 border border-plum-200 rounded-lg hover:bg-plum-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                  >
-                    <span className="flex items-center justify-center gap-2">
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                      </svg>
-                      Record from Browser Tab
-                    </span>
-                  </button>
-                  <p className="text-text-light text-xs mt-1.5">
-                    Capture audio from Meet, Teams, or other Chrome tabs
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Microphone Selection */}
-          <div className="mb-5">
-            <label className="block text-text-secondary mb-2 text-sm font-medium">Microphone</label>
-            <Select
-              value={selectedMic}
-              onChange={(e) => setSelectedMic(e.target.value)}
-              className="text-sm"
-              disabled={isRecording || isScheduled}>
-              {audioDevices.map((device) => (
-                <option key={device.deviceId} value={device.deviceId}>
-                  {device.label || `Microphone ${device.deviceId.slice(0, 8)}`}
-                </option>
-              ))}
-            </Select>
-          </div>
-
-          {/* Context Management */}
-          <ContextManagementPanel
-            sessionCode={code}
-            sessionId={session.id}
-            contextSets={contextSets}
-            mergedContext={mergedContext}
-            isLoading={contextsLoading}
-            disabled={isRecording || isScheduled}
-            isHost={participantInfo?.isHost || false}
-            onContextChange={handleContextChange}
-            onAddContextSets={addContextSets}
-            onRemoveContextSet={removeContextSet}
-          />
-
-          {/* Recording Status */}
-          <div className="mb-5 bg-white rounded-lg p-3 border border-plum-100">
-            <div className="flex items-center gap-3">
-              <div className={`w-3 h-3 rounded-full ${
-                isRecording && !isPaused
-                  ? 'bg-plum-500 animate-pulse-glow'
-                  : isRecording && isPaused
-                    ? 'bg-amber-500'
-                    : 'bg-gray-300'
-              }`} />
-              <span className="text-sm text-text-primary font-medium">
-                {isRecording && !isPaused
-                  ? 'Recording...'
-                  : isRecording && isPaused
-                    ? 'Paused'
-                    : 'Ready'}
-              </span>
-            </div>
-            <div className="text-xs text-text-light mt-1">State: {state}</div>
-          </div>
-
-          {/* Start/Stop Button */}
-          <Button
-            onClick={handleStartStop}
-            disabled={isScheduled}
-            variant={isRecording ? 'danger' : 'success'}
-            size="lg"
-            className="w-full mb-5 h-14">
-            {isRecording ? 'Stop Recording' : isScheduled ? 'Waiting for scheduled time...' : 'Start Recording'}
-          </Button>
-
-          {/* Join Request Notifications - only for host */}
-          {participantInfo?.isHost && (
-            <JoinRequestNotifications sessionId={session.id} sessionCode={code} />
-          )}
-
-          {/* Participants */}
-          <div className="flex-1 overflow-auto mb-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-medium text-text-secondary">
-                Participants ({participants.filter((p) => !p.left_at).length})
-              </h3>
-              {participantInfo?.isHost && (
-                <button
-                  onClick={() => setIsInviteModalOpen(true)}
-                  className="text-xs text-plum-600 hover:text-plum-700 font-medium transition-colors">
-                  + Invite
-                </button>
-              )}
-            </div>
-            <div className="space-y-2">
-              {participants.map((p) => {
-                const isOnline = !p.left_at;
-                return (
-                  <div
-                    key={p.id}
-                    className={`text-sm flex items-center gap-2 px-3 py-2 rounded-lg ${isOnline ? 'bg-white' : 'bg-surface-muted'}`}>
-                    <div className={`w-2 h-2 rounded-full flex-shrink-0 ${isOnline ? 'bg-green-500' : 'bg-gray-300'}`} />
-                    <span className={isOnline ? 'text-text-primary' : 'text-text-light'}>{p.name}</span>
-                    {p.is_host && <span className="text-xs text-plum-600 font-medium">(Host)</span>}
-                    {p.id === participantInfo?.participantId && <span className="text-xs text-text-light">(You)</span>}
-                    {!isOnline && <span className="text-xs text-text-light">(Left)</span>}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="space-y-2">
-            {participantInfo?.isHost && (
-              <Button onClick={handleEndSession} variant="danger" className="w-full">
-                End Session
-              </Button>
-            )}
-            <Button onClick={handleLeave} variant="outline" className="w-full">
-              Leave Session
-            </Button>
-          </div>
-        </div>
-
-        {/* Right Panel - Transcripts */}
-        <div className="flex-1 flex flex-col bg-gradient-to-br from-plum-800 to-plum-900 min-h-0 relative">
+      {/* Main Content - Full width transcripts */}
+      <div className="flex-1 flex flex-col bg-gradient-to-br from-plum-800 to-plum-900 min-h-0 relative">
           {/* Show empty state OR scroll container, not both */}
           {transcripts.length === 0 && streamingTranscripts.size === 0 && !currentStreamingText ? (
             <div className="flex-1 flex items-center justify-center">
@@ -1014,17 +819,17 @@ export default function SessionContent({ code }: SessionContentProps) {
             </div>
           )}
 
-          {/* Scroll to bottom button - positioned above the FloatingBilingualButton */}
+          {/* Scroll to bottom button */}
           {showScrollButton && (
             <button
               onClick={scrollToBottom}
-              className="absolute bottom-20 right-4 w-14 h-14 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white rounded-full shadow-lg transition-all duration-200 hover:scale-110 active:scale-95 flex items-center justify-center"
+              className="absolute bottom-4 right-4 w-12 h-12 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white rounded-full shadow-lg transition-all duration-200 hover:scale-110 active:scale-95 flex items-center justify-center cursor-pointer"
               aria-label="Scroll to bottom"
               title={unreadFromIndex !== null && transcripts.length > unreadFromIndex
                 ? `${transcripts.length - unreadFromIndex} new messages`
                 : 'Scroll to bottom'}
             >
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
               </svg>
               {unreadFromIndex !== null && transcripts.length > unreadFromIndex && (
@@ -1035,7 +840,66 @@ export default function SessionContent({ code }: SessionContentProps) {
             </button>
           )}
         </div>
-      </div>
+
+      {/* Bottom Toolbar */}
+      <SessionToolbar
+        isRecording={isRecording}
+        isPaused={isPaused}
+        isScheduled={isScheduled}
+        onStartStop={handleStartStop}
+        audioDevices={audioDevices}
+        selectedMic={selectedMic}
+        onMicChange={setSelectedMic}
+        isTabAudioSupported={!!PROXY_URL && isTabAudioCaptureSupported()}
+        tabAudioStream={tabAudioStream}
+        tabName={tabName}
+        onStartTabAudio={handleStartTabAudio}
+        onStopTabAudio={handleStopTabAudio}
+        isBilingualMode={isBilingualMode}
+        onToggleBilingual={toggleBilingualMode}
+        contextCount={contextSets.length}
+        onOpenContext={() => setIsContextModalOpen(true)}
+        participantCount={activeParticipantCount}
+        onOpenParticipants={() => setIsParticipantsPanelOpen(true)}
+        isHost={participantInfo?.isHost || false}
+        onLeave={handleLeave}
+        onEndSession={handleEndSession}
+      />
+
+      {/* Panels */}
+      <ParticipantsPanel
+        isOpen={isParticipantsPanelOpen}
+        onClose={() => setIsParticipantsPanelOpen(false)}
+        participants={participants}
+        currentParticipantId={participantInfo?.participantId || ''}
+        isHost={participantInfo?.isHost || false}
+        onInvite={() => {
+          setIsParticipantsPanelOpen(false);
+          setIsInviteModalOpen(true);
+        }}
+      />
+
+      <SettingsPanel
+        isOpen={isSettingsPanelOpen}
+        onClose={() => setIsSettingsPanelOpen(false)}
+        session={session}
+        displayLanguage={displayLanguage}
+        onDisplayLanguageChange={handleDisplayLanguageChange}
+        isBilingualMode={isBilingualMode}
+      />
+
+      <ContextModal
+        isOpen={isContextModalOpen}
+        onClose={() => setIsContextModalOpen(false)}
+        contextSets={contextSets}
+        mergedContext={mergedContext}
+        isLoading={contextsLoading}
+        disabled={isRecording || isScheduled}
+        isHost={participantInfo?.isHost || false}
+        onContextChange={handleContextChange}
+        onAddContextSets={addContextSets}
+        onRemoveContextSet={removeContextSet}
+      />
 
       {/* Invite Modal */}
       <InviteModal
@@ -1043,9 +907,6 @@ export default function SessionContent({ code }: SessionContentProps) {
         isOpen={isInviteModalOpen}
         onClose={() => setIsInviteModalOpen(false)}
       />
-
-      {/* Floating Bilingual Button */}
-      <FloatingBilingualButton />
     </div>
   );
 }

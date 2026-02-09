@@ -8,6 +8,9 @@ const envSchema = z.object({
   // Soniox API
   SONIOX_API_KEY: z.string().min(1, 'SONIOX_API_KEY is required'),
 
+  // Soniox V4 - Semantic endpointing configuration
+  MAX_ENDPOINT_DELAY_MS: z.coerce.number().int().positive().optional(),
+
   // WebSocket Server
   PORT: z.coerce.number().int().positive().default(3001),
   WS_PATH: z.string().default('/'),

@@ -379,7 +379,7 @@ export default function useProxyTranscribe({
           sessionCode,
           participantId,
           participantName,
-          model: 'stt-rt-preview',
+          model: 'stt-rt-v4',
           enableLanguageIdentification: true,
           enableSpeakerDiarization,
           enableEndpointDetection: true,

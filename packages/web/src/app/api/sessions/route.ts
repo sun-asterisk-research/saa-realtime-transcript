@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       isPublic = false,
       invitedEmails = [],
       contextSetIds,
-      enableSpeakerDiarization = false,
+      enableSpeakerDiarization = true, // Always enabled
     } = body;
 
     // 2. Validate required fields
